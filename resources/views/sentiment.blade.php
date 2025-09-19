@@ -6,13 +6,71 @@
 
 @section('content')
 <div class="space-y-8">
+
+    <!-- PILIH KATEGORI ANALISIS (BARU) -->
+    <div class="bg-white rounded-2xl p-6 card-shadow">
+        <div class="flex items-center space-x-3 mb-6">
+            <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                <i class="fas fa-layer-group text-blue-600"></i>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-gray-800">Pilih Kategori Analisis</h3>
+                <p class="text-gray-600 text-sm">Pilih jenis data yang ingin dianalisis sentimennya</p>
+            </div>
+        </div>
+
+        <input type="hidden" id="analysisType" value="news">
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+         <!-- Card: Analisis Berita -->
+<button type="button" id="cardNews"
+  class="w-full text-left border rounded-2xl p-5 transition-all
+         bg-white border-gray-200 ring-0 hover:bg-blue-50">
+  <div class="flex items-start space-x-4">
+    <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+      <i class="fas fa-newspaper text-blue-600"></i>
+    </div>
+    <div class="flex-1">
+      <h4 class="text-lg font-semibold text-gray-800">Analisis Berita</h4>
+      <p class="text-sm text-gray-600 mt-1">Analisis sentimen teks/berita dari portal berita</p>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <span class="px-2 py-1 text-xs rounded bg-blue-50 text-blue-700">Detik</span>
+        <span class="px-2 py-1 text-xs rounded bg-blue-50 text-blue-700">Kompas</span>
+        <span class="px-2 py-1 text-xs rounded bg-blue-50 text-blue-700">CNN</span>
+      </div>
+    </div>
+  </div>
+</button>
+
+            <!-- Card: Analisis YouTube -->
+            <button type="button" id="cardYoutube"
+                class="w-full text-left border rounded-2xl p-5 transition-all hover:bg-red-50 hover:border-red-200">
+                <div class="flex items-start space-x-4">
+                    <div class="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
+                        <i class="fab fa-youtube text-red-600"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-lg font-semibold text-gray-800">Analisis YouTube</h4>
+                        <p class="text-sm text-gray-600 mt-1">Analisis sentimen komentar dari video YouTube</p>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <span class="px-2 py-1 text-xs rounded bg-rose-50 text-rose-700">Comments</span>
+                            <span class="px-2 py-1 text-xs rounded bg-rose-50 text-rose-700">Replies</span>
+                            <span class="px-2 py-1 text-xs rounded bg-rose-50 text-rose-700">Metadata</span>
+                        </div>
+                    </div>
+                </div>
+            </button>
+        </div>
+    </div>
+    <!-- END PILIH KATEGORI ANALISIS -->
+
     <!-- Analysis Controls -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div id="cardsGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <!-- Text Input Analysis -->
-        <div class="bg-white rounded-2xl p-6 card-shadow">
+        <div id="manualCard" class="bg-white rounded-2xl p-6 card-shadow h-full flex flex-col">
             <div class="flex items-center space-x-3 mb-6">
-                <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <i class="fas fa-keyboard text-purple-600"></i>
+                <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-keyboard text-blue-600"></i>
                 </div>
                 <div>
                     <h3 class="text-xl font-bold text-gray-800">Analisis Teks Manual</h3>
@@ -20,7 +78,7 @@
                 </div>
             </div>
             
-            <form id="textAnalysisForm" class="space-y-4">
+            <form id="textAnalysisForm" class="space-y-4 flex flex-col h-full">
                 @csrf
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Teks untuk Dianalisis</label>
@@ -34,33 +92,18 @@
                         <span id="charCount">0</span> karakter | Min. 10 karakter
                     </div>
                 </div>
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Model Analisis</label>
-                        <select name="model" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                            <option value="bert">BERT (Akurat)</option>
-                            <option value="lstm">LSTM (Cepat)</option>
-                            <option value="naive_bayes">Naive Bayes (Ringan)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Bahasa</label>
-                        <select name="language" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                            <option value="id">Bahasa Indonesia</option>
-                            <option value="en">English</option>
-                        </select>
-                    </div>
+
+                <!-- Button -->
+                <div class="mt-auto">
+                    <button type="submit" id="startLinkScraping" class="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium">
+                        <i class="fas fa-brain mr-2"></i>Analisis Sekarang
+                    </button>
                 </div>
-                
-                <button type="submit" id="analyzeTextBtn" class="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 font-medium">
-                    <i class="fas fa-brain mr-2"></i>Analisis Sekarang
-                </button>
             </form>
         </div>
         
         <!-- Batch Analysis -->
-        <div class="bg-white rounded-2xl p-6 card-shadow">
+        <div id="batchCard" class="bg-white rounded-2xl p-6 card-shadow h-full flex flex-col">
             <div class="flex items-center space-x-3 mb-6">
                 <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
                     <i class="fas fa-list text-blue-600"></i>
@@ -87,7 +130,7 @@
                 </div>
             </div>
             
-            <form id="batchAnalysisForm" class="space-y-4">
+            <form id="batchAnalysisForm" class="space-y-4 flex flex-col h-full">
                 @csrf
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Sumber Data</label>
@@ -130,9 +173,12 @@
                     </div>
                 </div>
                 
-                <button type="submit" id="startBatchAnalysis" class="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium">
-                    <i class="fas fa-play mr-2"></i>Mulai Analisis Batch
-                </button>
+                <!-- Button -->
+                <div class="mt-auto">
+                    <button type="submit" id="startLinkScraping" class="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium">
+                        <i class="fas fa-play mr-2"></i>Mulai Analisis
+                    </button>
+                </div>
             </form>
         </div>
     </div>
@@ -165,7 +211,7 @@
         </div>
     </div>
     
-    <!-- Recent Analysis Results -->
+    <!-- Recent Analysis Results (tetap) -->
     <div class="bg-white rounded-2xl card-shadow">
         <div class="p-6 border-b border-gray-200">
             <div class="flex items-center justify-between">
@@ -211,88 +257,86 @@
             </div>
             
             <!-- Results Table -->
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="border-b border-gray-200">
-                            <th class="text-left py-4 px-4 font-medium text-gray-700">Teks/Berita</th>
-                            <th class="text-left py-4 px-4 font-medium text-gray-700">Sentimen</th>
-                            <th class="text-left py-4 px-4 font-medium text-gray-700">Confidence</th>
-                            <th class="text-left py-4 px-4 font-medium text-gray-700">Model</th>
-                            <th class="text-left py-4 px-4 font-medium text-gray-700">Waktu</th>
-                            <th class="text-left py-4 px-4 font-medium text-gray-700">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="analysisTableBody">
-                        @php
-                        $sampleResults = [
-                            ['text' => 'Ekonomi Indonesia menunjukkan pertumbuhan yang positif...', 'sentiment' => 'positive', 'confidence' => 92.5, 'model' => 'BERT'],
-                            ['text' => 'Keadaan politik saat ini cukup mengkhawatirkan...', 'sentiment' => 'negative', 'confidence' => 87.3, 'model' => 'LSTM'],
-                            ['text' => 'Pemerintah mengumumkan kebijakan baru tentang...', 'sentiment' => 'neutral', 'confidence' => 78.9, 'model' => 'BERT'],
-                            ['text' => 'Teknologi AI berkembang pesat dan memberikan dampak...', 'sentiment' => 'positive', 'confidence' => 95.2, 'model' => 'BERT'],
-                            ['text' => 'Situasi pandemi masih memerlukan perhatian khusus...', 'sentiment' => 'negative', 'confidence' => 89.7, 'model' => 'LSTM']
-                        ];
-                        @endphp
-                        
-                        @foreach($sampleResults as $index => $result)
-                        <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                            <td class="py-4 px-4">
-                                <div class="max-w-md">
-                                    <p class="text-gray-800 text-sm">{{ Str::limit($result['text'], 80) }}</p>
-                                    <div class="mt-2 flex flex-wrap gap-1">
-                                        <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">politik</span>
-                                        <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">ekonomi</span>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="py-4 px-4">
-                                @if($result['sentiment'] === 'positive')
-                                    <span class="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full font-medium">
-                                        <i class="fas fa-smile mr-1"></i>Positif
-                                    </span>
-                                @elseif($result['sentiment'] === 'negative')
-                                    <span class="px-3 py-1 bg-red-100 text-red-800 text-sm rounded-full font-medium">
-                                        <i class="fas fa-frown mr-1"></i>Negatif
-                                    </span>
-                                @else
-                                    <span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm rounded-full font-medium">
-                                        <i class="fas fa-meh mr-1"></i>Netral
-                                    </span>
-                                @endif
-                            </td>
-                            <td class="py-4 px-4">
-                                <div class="flex items-center space-x-2">
-                                    <div class="flex-1 bg-gray-200 rounded-full h-2">
-                                        <div class="h-2 rounded-full {{ $result['confidence'] > 90 ? 'bg-green-500' : ($result['confidence'] > 80 ? 'bg-yellow-500' : 'bg-red-500') }}" 
-                                             style="width: {{ $result['confidence'] }}%"></div>
-                                    </div>
-                                    <span class="text-sm font-medium text-gray-700">{{ $result['confidence'] }}%</span>
-                                </div>
-                            </td>
-                            <td class="py-4 px-4">
-                                <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">{{ $result['model'] }}</span>
-                            </td>
-                            <td class="py-4 px-4">
-                                <span class="text-gray-600 text-sm">{{ now()->subMinutes($index * 15)->format('H:i, d/m') }}</span>
-                            </td>
-                            <td class="py-4 px-4">
-                                <div class="flex space-x-2">
-                                    <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="viewAnalysisDetail({{ $index + 1 }})">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button class="text-green-600 hover:text-green-800 text-sm" onclick="reAnalyze({{ $index + 1 }})">
-                                        <i class="fas fa-redo"></i>
-                                    </button>
-                                    <button class="text-red-600 hover:text-red-800 text-sm" onclick="deleteAnalysis({{ $index + 1 }})">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+<div class="overflow-x-auto">
+  <table class="w-full">
+    <thead>
+      <tr class="border-b border-gray-200">
+        <th class="text-left py-4 px-4 font-medium text-gray-700">Teks/Berita</th>
+        <th class="text-left py-4 px-4 font-medium text-gray-700">Sentimen</th>
+        <th class="text-left py-4 px-4 font-medium text-gray-700">Confidence</th>
+        <!-- (HAPUS) <th>Model</th> -->
+        <th class="text-left py-4 px-4 font-medium text-gray-700">Waktu</th>
+        <th class="text-left py-4 px-4 font-medium text-gray-700">Aksi</th>
+      </tr>
+    </thead>
+    <tbody id="analysisTableBody">
+      @php
+      $sampleResults = [
+          ['text' => 'Ekonomi Indonesia menunjukkan pertumbuhan yang positif...', 'sentiment' => 'positive', 'confidence' => 92.5, 'model' => 'BERT'],
+          ['text' => 'Keadaan politik saat ini cukup mengkhawatirkan...', 'sentiment' => 'negative', 'confidence' => 87.3, 'model' => 'LSTM'],
+          ['text' => 'Pemerintah mengumumkan kebijakan baru tentang...', 'sentiment' => 'neutral', 'confidence' => 78.9, 'model' => 'BERT'],
+          ['text' => 'Teknologi AI berkembang pesat dan memberikan dampak...', 'sentiment' => 'positive', 'confidence' => 95.2, 'model' => 'BERT'],
+          ['text' => 'Situasi pandemi masih memerlukan perhatian khusus...', 'sentiment' => 'negative', 'confidence' => 89.7, 'model' => 'LSTM']
+      ];
+      @endphp
+      
+      @foreach($sampleResults as $index => $result)
+      <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+        <td class="py-4 px-4">
+          <div class="max-w-md">
+            <p class="text-gray-800 text-sm">{{ Str::limit($result['text'], 80) }}</p>
+            <div class="mt-2 flex flex-wrap gap-1">
+              <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">politik</span>
+              <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">ekonomi</span>
             </div>
+          </div>
+        </td>
+        <td class="py-4 px-4">
+          @if($result['sentiment'] === 'positive')
+            <span class="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full font-medium">
+              <i class="fas fa-smile mr-1"></i>Positif
+            </span>
+          @elseif($result['sentiment'] === 'negative')
+            <span class="px-3 py-1 bg-red-100 text-red-800 text-sm rounded-full font-medium">
+              <i class="fas fa-frown mr-1"></i>Negatif
+            </span>
+          @else
+            <span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm rounded-full font-medium">
+              <i class="fas fa-meh mr-1"></i>Netral
+            </span>
+          @endif
+        </td>
+        <td class="py-4 px-4">
+          <div class="flex items-center space-x-2">
+            <div class="flex-1 bg-gray-200 rounded-full h-2">
+              <div class="h-2 rounded-full {{ $result['confidence'] > 90 ? 'bg-green-500' : ($result['confidence'] > 80 ? 'bg-yellow-500' : 'bg-red-500') }}"
+                   style="width: {{ $result['confidence'] }}%"></div>
+            </div>
+            <span class="text-sm font-medium text-gray-700">{{ $result['confidence'] }}%</span>
+          </div>
+        </td>
+        <!-- (HAPUS) kolom model per-baris -->
+        <td class="py-4 px-4">
+          <span class="text-gray-600 text-sm">{{ now()->subMinutes($index * 15)->format('H:i, d/m') }}</span>
+        </td>
+        <td class="py-4 px-4">
+          <div class="flex space-x-2">
+            <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="viewAnalysisDetail({{ $index + 1 }})">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="text-green-600 hover:text-green-800 text-sm" onclick="reAnalyze({{ $index + 1 }})">
+              <i class="fas fa-redo"></i>
+            </button>
+            <button class="text-red-600 hover:text-red-800 text-sm" onclick="deleteAnalysis({{ $index + 1 }})">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+      @endforeach
+    </tbody>
+  </table>
+</div>
             
             <!-- Pagination -->
             <div class="mt-6 flex items-center justify-between">
@@ -303,7 +347,7 @@
                     <button class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors disabled:opacity-50" disabled>
                         <i class="fas fa-chevron-left"></i>
                     </button>
-                    <button class="px-3 py-2 bg-purple-500 text-white rounded-lg text-sm">1</button>
+                    <button class="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm">1</button>
                     <button class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">2</button>
                     <button class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">3</button>
                     <button class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
@@ -335,7 +379,51 @@
 <script>
 $(document).ready(function() {
     let isAnalyzing = false;
-    
+
+    // ====== HANDLER PILIH KATEGORI (BARU) ======
+    function setType(type) {
+        $('#analysisType').val(type);
+
+        // gaya kartu terpilih
+        if (type === 'news') {
+            $('#cardNews').addClass('bg-purple-50 border-purple-200 ring-2 ring-purple-300');
+            $('#cardYoutube').removeClass('bg-red-50 border-red-200 ring-2 ring-red-300');
+        } else {
+            $('#cardYoutube').addClass('bg-red-50 border-red-200 ring-2 ring-red-300');
+            $('#cardNews').removeClass('bg-purple-50 border-purple-200 ring-2 ring-purple-300');
+        }
+
+        // placeholder & label sumber data
+        if (type === 'youtube') {
+            $('#analysisText').attr('placeholder', 'Tempel teks/komentar YouTube yang ingin dianalisis sentimennya...');
+            $('#dataSource').html(`
+                <option value="scraped">Komentar dari Scraping YouTube</option>
+                <option value="uploaded">File Upload (CSV/Excel)</option>
+                <option value="database">Data dari Database</option>
+            `);
+
+            // MODE YOUTUBE: sembunyikan manual, grid 1 kolom, batch full width
+            $('#manualCard').addClass('hidden');
+            $('#cardsGrid').removeClass('lg:grid-cols-2').addClass('lg:grid-cols-1');
+            $('#batchCard').removeClass('mx-auto lg:max-w-3xl').addClass('w-full');
+        } else {
+            $('#analysisText').attr('placeholder', 'Masukkan teks berita atau kalimat yang ingin dianalisis sentimennya...');
+            $('#dataSource').html(`
+                <option value="scraped">Berita dari Scraping</option>
+                <option value="uploaded">File Upload (CSV/Excel)</option>
+                <option value="database">Data dari Database</option>
+            `);
+
+            // MODE NEWS: tampilkan manual, grid 2 kolom, bersihkan kelas width khusus
+            $('#manualCard').removeClass('hidden');
+            $('#cardsGrid').removeClass('lg:grid-cols-1').addClass('lg:grid-cols-2');
+            $('#batchCard').removeClass('w-full mx-auto lg:max-w-3xl');
+        }
+    }
+    $('#cardNews').on('click', function(){ setType('news'); });
+    $('#cardYoutube').on('click', function(){ setType('youtube'); });
+    setType('news'); // default
+
     // Character count for text input
     $('#analysisText').on('input', function() {
         const length = $(this).val().length;
@@ -514,7 +602,6 @@ $(document).ready(function() {
             $('#batchProgressBar').css('width', '0%');
             $('#batchProgressText').text('0/0');
             
-            // Show success message
             alert('Analisis batch berhasil diselesaikan! 25 item telah dianalisis.');
         }, 2000);
     }
@@ -528,7 +615,6 @@ $(document).ready(function() {
     
     // Filter handlers
     $('#sentimentFilter, #accuracyFilter').on('change', function() {
-        // Implement filtering logic here
         console.log('Filter applied');
     });
 });

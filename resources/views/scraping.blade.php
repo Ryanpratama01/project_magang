@@ -9,8 +9,8 @@
     <!-- Category Selection -->
     <div class="bg-white rounded-2xl p-6 card-shadow">
         <div class="flex items-center space-x-3 mb-6">
-            <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                <i class="fas fa-layer-group text-purple-600"></i>
+            <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                <i class="fas fa-layer-group text-blue-600"></i>
             </div>
             <div>
                 <h3 class="text-xl font-bold text-gray-800">Pilih Kategori Scraping</h3>
@@ -28,9 +28,7 @@
                         <h4 class="font-bold text-blue-800 mb-1">Scraping Berita</h4>
                         <p class="text-blue-600 text-sm">Ambil data berita dari website portal berita</p>
                         <div class="flex items-center mt-2 space-x-2">
-                            <span class="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded">Detik</span>
-                            <span class="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded">Kompas</span>
-                            <span class="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded">CNN</span>
+
                         </div>
                     </div>
                 </div>
@@ -45,9 +43,6 @@
                         <h4 class="font-bold text-red-800 mb-1">Scraping YouTube</h4>
                         <p class="text-red-600 text-sm">Ambil data komentar dari video YouTube</p>
                         <div class="flex items-center mt-2 space-x-2">
-                            <span class="px-2 py-1 bg-red-200 text-red-800 text-xs rounded">Comments</span>
-                            <span class="px-2 py-1 bg-red-200 text-red-800 text-xs rounded">Replies</span>
-                            <span class="px-2 py-1 bg-red-200 text-red-800 text-xs rounded">Metadata</span>
                         </div>
                     </div>
                 </div>
@@ -98,9 +93,10 @@ https://example.com/berita-3"></textarea>
             <!-- Cari Berita -->
             <div class="bg-white rounded-2xl p-6 card-shadow">
                 <div class="flex items-center space-x-3 mb-6">
-                    <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-                        <i class="fas fa-search text-green-600"></i>
+                    <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-search text-blue-700"></i>
                     </div>
+                    
                     <div>
                         <h3 class="text-xl font-bold text-gray-800">Cari Berita</h3>
                         <p class="text-gray-600 text-sm">Cari berita berdasarkan kata kunci</p>
@@ -109,15 +105,7 @@ https://example.com/berita-3"></textarea>
                 
                 <form id="searchScrapingForm" class="space-y-4">
                     @csrf
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Sumber Berita</label>
-                        <input 
-                            type="text" 
-                            name="source"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="detik.com, kompas.com, dll"
-                            value="detik.com">
-                    </div>
+                    
                     
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Masukkan Kata Kunci</label>
@@ -146,7 +134,7 @@ https://example.com/berita-3"></textarea>
                         </div>
                     </div>
                     
-                    <button type="submit" id="startSearchScraping" class="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-200 font-medium">
+                    <button type="submit" id="startSearchScraping" class="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium">
                         <i class="fas fa-search mr-2"></i>Cari & Scrape
                     </button>
                 </form>
@@ -183,23 +171,7 @@ https://www.youtube.com/watch?v=VIDEO_ID_2
 https://youtu.be/SHORT_URL"></textarea>
                     </div>
                     
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Data</label>
-                        <div class="space-y-2">
-                            <label class="flex items-center">
-                                <input type="checkbox" name="scrape_types[]" value="comments" checked class="rounded border-gray-300 text-red-600 focus:ring-red-500">
-                                <span class="ml-2 text-sm text-gray-700">Komentar Video</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" name="scrape_types[]" value="replies" class="rounded border-gray-300 text-red-600 focus:ring-red-500">
-                                <span class="ml-2 text-sm text-gray-700">Balasan Komentar</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" name="scrape_types[]" value="metadata" class="rounded border-gray-300 text-red-600 focus:ring-red-500">
-                                <span class="ml-2 text-sm text-gray-700">Metadata Video</span>
-                            </label>
-                        </div>
-                    </div>
+                    
                     
                     <div class="flex justify-between items-center">
                         <button type="button" id="clearYoutubeUrls" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
@@ -215,8 +187,8 @@ https://youtu.be/SHORT_URL"></textarea>
             <!-- YouTube Search -->
             <div class="bg-white rounded-2xl p-6 card-shadow">
                 <div class="flex items-center space-x-3 mb-6">
-                    <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                        <i class="fas fa-search text-purple-600"></i>
+                    <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-search text-red-600"></i>
                     </div>
                     <div>
                         <h3 class="text-xl font-bold text-gray-800">Cari Video YouTube</h3>
@@ -231,34 +203,15 @@ https://youtu.be/SHORT_URL"></textarea>
                         <input 
                             type="text" 
                             name="search_query"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                             placeholder="politik indonesia, review produk, tutorial">
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah Video</label>
-                            <select name="video_limit" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                                <option value="5">5 Video</option>
-                                <option value="10" selected>10 Video</option>
-                                <option value="25">25 Video</option>
-                                <option value="50">50 Video</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Durasi Video</label>
-                            <select name="duration_filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                                <option value="">Semua Durasi</option>
-                                <option value="short">< 4 menit</option>
-                                <option value="medium">4-20 menit</option>
-                                <option value="long">> 20 menit</option>
-                            </select>
-                        </div>
-                    </div>
+                    
                     
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Filter Tanggal Upload</label>
-                        <select name="upload_date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <select name="upload_date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
                             <option value="">Semua Waktu</option>
                             <option value="hour">1 Jam Terakhir</option>
                             <option value="today">Hari Ini</option>
@@ -268,7 +221,7 @@ https://youtu.be/SHORT_URL"></textarea>
                         </select>
                     </div>
                     
-                    <button type="submit" id="startYoutubeSearch" class="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 font-medium">
+                    <button type="submit" id="startYoutubeSearch" class="w-full px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red -700 transition-all duration-200 font-medium">
                         <i class="fas fa-search mr-2"></i>Cari & Scrape Komentar
                     </button>
                 </form>
@@ -308,7 +261,7 @@ https://youtu.be/SHORT_URL"></textarea>
                     <button id="selectAll" class="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                         <i class="fas fa-check-square mr-2"></i>Pilih Semua
                     </button>
-                    <button id="analyzeSelected" class="px-6 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-200">
+                    <button id="analyzeSelected" class="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200">
                         <i class="fas fa-brain mr-2"></i>Analisis Sentimen
                     </button>
                 </div>
@@ -420,10 +373,10 @@ $(document).ready(function() {
                     <th class="text-left py-4 px-2 font-medium text-gray-700">
                         <input type="checkbox" id="masterCheckbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                     </th>
-                    <th class="text-left py-4 px-4 font-medium text-gray-700">Judul Berita</th>
-                    <th class="text-left py-4 px-4 font-medium text-gray-700">Sumber</th>
+                    <th class="text-left py-4 px-4 font-medium text-gray-700">Kutipan</th>
+                    <th class="text-left py-4 px-4 font-medium text-gray-700">Berita URL</th>
                     <th class="text-left py-4 px-4 font-medium text-gray-700">Tanggal</th>
-                    <th class="text-left py-4 px-4 font-medium text-gray-700">Status</th>
+                    <th class="text-left py-4 px-4 font-medium text-gray-700">Speaker</th>
                     <th class="text-left py-4 px-4 font-medium text-gray-700">Aksi</th>
                 </tr>
             `;
@@ -434,9 +387,10 @@ $(document).ready(function() {
                         <input type="checkbox" id="masterCheckbox" class="rounded border-gray-300 text-red-600 focus:ring-red-500">
                     </th>
                     <th class="text-left py-4 px-4 font-medium text-gray-700">Komentar</th>
-                    <th class="text-left py-4 px-4 font-medium text-gray-700">Video</th>
+                    <th class="text-left py-4 px-4 font-medium text-gray-700">Komentar Bersih</th>
+                    <th class="text-left py-4 px-4 font-medium text-gray-700">Komentar Bersih</th>
+                    <th class="text-left py-4 px-4 font-medium text-gray-700">Video URL</th>
                     <th class="text-left py-4 px-4 font-medium text-gray-700">Author</th>
-                    <th class="text-left py-4 px-4 font-medium text-gray-700">Likes</th>
                     <th class="text-left py-4 px-4 font-medium text-gray-700">Tanggal</th>
                     <th class="text-left py-4 px-4 font-medium text-gray-700">Aksi</th>
                 </tr>
@@ -471,9 +425,7 @@ $(document).ready(function() {
                             <span class="text-gray-600 text-sm">${new Date(Date.now() - i * 24 * 60 * 60 * 1000).toLocaleDateString('id-ID')}</span>
                         </td>
                         <td class="py-4 px-4">
-                            <span class="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                                <i class="fas fa-check mr-1"></i>Berhasil
-                            </span>
+                            <span class="text-gray-700 text-sm">@user${i}</span>
                         </td>
                         <td class="py-4 px-4">
                             <div class="flex space-x-2">
@@ -501,6 +453,16 @@ $(document).ready(function() {
                             </div>
                         </td>
                         <td class="py-4 px-4">
+                            <div class="max-w-md">
+                                <p class="text-gray-800 text-sm">Komentar YouTube sample ${i}: Videonya bagus banget! Sangat membantu untuk belajar...</p>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <div class="max-w-md">
+                                <p class="text-gray-800 text-sm">Komentar YouTube sample ${i}: Videonya bagus banget! Sangat membantu untuk belajar...</p>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
                             <div class="max-w-xs">
                                 <p class="font-medium text-gray-800 text-sm">Tutorial ${i}</p>
                                 <p class="text-gray-600 text-xs">Channel Name</p>
@@ -508,9 +470,6 @@ $(document).ready(function() {
                         </td>
                         <td class="py-4 px-4">
                             <span class="text-gray-700 text-sm">@user${i}</span>
-                        </td>
-                        <td class="py-4 px-4">
-                            <span class="text-gray-600 text-sm">${Math.floor(Math.random() * 100) + 1}</span>
                         </td>
                         <td class="py-4 px-4">
                             <span class="text-gray-600 text-sm">${new Date(Date.now() - i * 60 * 60 * 1000).toLocaleDateString('id-ID')}</span>
@@ -734,7 +693,7 @@ function viewItem(id, type) {
     let modalContent = '';
     
     if (type === 'news') {
-        modalTitle = 'Detail Berita';
+        modalTitle = 'Detail Kutipan';
         modalContent = `
             <div class="space-y-4">
                 <div>

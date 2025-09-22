@@ -14,7 +14,7 @@
     
     <style>
         .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
         }
         .login-card {
             backdrop-filter: blur(10px);
@@ -26,7 +26,7 @@
     <div class="login-card rounded-2xl shadow-2xl p-8 w-full max-w-md">
         <!-- Logo and Title -->
         <div class="text-center mb-8">
-            <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <i class="fas fa-chart-line text-white text-2xl"></i>
             </div>
             <h1 class="text-2xl font-bold text-gray-800 mb-2">Sistem Analisis Sentimen</h1>
@@ -85,31 +85,27 @@
                     <span class="ml-2 text-sm text-gray-600">Ingat saya</span>
                 </label>
                 
-                <a href="#" class="text-sm text-blue-600 hover:text-blue-800 transition-colors">
-                    Lupa password?
-                </a>
+               <a href="{{ route('password.request') }}" class="text-sm text-blue-600 hover:text-blue-800 transition-colors">
+    Lupa password?
+</a>
+
             </div>
             
             <button type="submit" 
-                    class="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 font-medium text-lg">
+                    class="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-xl hover:from-blue-600 hover:to-blue-800 transition-all duration-200 font-medium text-lg">
                 <i class="fas fa-sign-in-alt mr-2"></i>Masuk
             </button>
         </form>
         
-        <!-- Demo Credentials -->
-        <div class="mt-6 p-4 bg-blue-50 rounded-xl">
-            <div class="flex items-start space-x-3">
-                <i class="fas fa-info-circle text-blue-500 mt-1"></i>
-                <div>
-                    <h4 class="font-medium text-blue-800 mb-1">Demo Credentials</h4>
-                    <p class="text-sm text-blue-700 mb-2">Gunakan kredensial berikut untuk testing:</p>
-                    <div class="text-xs text-blue-600 font-mono bg-blue-100 p-2 rounded">
-                        <div>Email: admin@example.com</div>
-                        <div>Password: password123</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+       <div class="mt-6 text-center">
+  <p class="text-sm text-gray-600">
+    Belum punya akun?
+    <a href="{{ route('register.show') }}" class="text-blue-600 hover:text-blue-800 font-medium transition-colors">
+      Daftar di sini
+    </a>
+  </p>
+</div>
+
         
         <!-- Footer -->
         <div class="mt-8 text-center">

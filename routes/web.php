@@ -18,7 +18,31 @@ Route::get('/', function () {
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
+// Register
+Route::get('/register', [AuthController::class, 'showRegister'])->name('register.show');
+Route::post('/register', [AuthController::class, 'register'])->name('register');
+
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+Route::get('/forget-password', [AuthController::class, 'showForgetPasswordForm'])
+    ->name('password.request');
+
+Route::post('/forget-password', [AuthController::class, 'sendResetLinkEmail'])
+    ->name('password.email');
+
+Route::get('/verify-otp', [AuthController::class, 'showVerifyOtpForm'])->name('password.verify.otp');
+
+Route::post('/verify-otp', [AuthController::class, 'verifyOtp'])->name('password.verify.otp.post');
+
+Route::post('/resend-otp', [AuthController::class, 'resendOtp'])
+    ->name('password.resend.otp');
+
+Route::get('/reset-password/{token}', [AuthController::class, 'showResetForm'])
+    ->name('password.reset');
+
+Route::post('/reset-password', [AuthController::class, 'reset'])
+    ->name('password.update');
+
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

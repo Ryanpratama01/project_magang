@@ -55,6 +55,7 @@ Route::middleware(['auth'])->group(function () {
     
     Route::get('/analisis-sentimen', [SentimentController::class, 'index'])->name('sentiment');
     Route::post('/analisis-sentimen/analyze', [SentimentController::class, 'analyze'])->name('sentiment.analyze');
+    // Route::get('/news-distribution', [SentimentController::class, 'index']);
     
     Route::get('/cetak-laporan', [ReportController::class, 'index'])->name('report');
     Route::post('/cetak-laporan/generate', [ReportController::class, 'generate'])->name('report.generate');

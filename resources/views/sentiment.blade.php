@@ -182,6 +182,50 @@
             </form>
         </div>
     </div>
+
+    <!-- Hasil Sentimen dari Database -->
+<div class="bg-white rounded-2xl p-6 card-shadow mt-6">
+    <h3 class="text-xl font-bold text-gray-800 mb-6">Hasil Analisis Sentimen dari Database</h3>
+    
+    @if($newsSentiments->isNotEmpty())
+        <table class="w-full table-auto">
+            <thead>
+                <tr class="border-b border-gray-200">
+                    <th class="py-2 px-4 text-left text-gray-700">Article ID</th>
+                    <th class="py-2 px-4 text-left text-gray-700">Quote Text</th>
+                    <th class="py-2 px-4 text-left text-gray-700">Sentiment</th>
+                    <th class="py-2 px-4 text-left text-gray-700">Positive Score</th>
+                    <th class="py-2 px-4 text-left text-gray-700">Negative Score</th>
+                    <th class="py-2 px-4 text-left text-gray-700">Neutral Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($newsSentiments as $sentiment)
+                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td class="py-4 px-4">{{ $sentiment->article_idx }}</td>
+                        <td class="py-4 px-4">{{ Str::limit($sentiment->quote_text, 50) }}</td>
+                        <td class="py-4 px-4">
+                            <span class="px-3 py-1 
+                                @if($sentiment->label == 'positive') bg-green-100 text-green-600 
+                                @elseif($sentiment->label == 'negative') bg-red-100 text-red-600
+                                @else bg-yellow-100 text-yellow-600
+                                @endif
+                                rounded-full">
+                                {{ ucfirst($sentiment->label) }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-4">{{ $sentiment->score_positive }}</td>
+                        <td class="py-4 px-4">{{ $sentiment->score_negative }}</td>
+                        <td class="py-4 px-4">{{ $sentiment->score_neutral }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @else
+        <p class="text-gray-600">Belum ada hasil analisis dari database.</p>
+    @endif
+</div>
+
     
     <!-- Analysis Result -->
     <div id="analysisResult" class="bg-white rounded-2xl p-6 card-shadow hidden">

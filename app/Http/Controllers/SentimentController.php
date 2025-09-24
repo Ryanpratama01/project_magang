@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;  // Pastikan menggunakan 'Illuminate\Support\Facades\DB'
+ // Menggunakan DB untuk Query Builder
+// Gunakan model jika dibutuhkan, jika tidak cukup menggunakan DB::table()
 
 class SentimentController extends Controller
 {
@@ -14,7 +17,15 @@ class SentimentController extends Controller
             'pending' => 6
         ];
         
-        return view('sentiment', compact('batchStats'));
+        // Mengambil data dari database
+        $newsSentiments = DB::table('news_article_sentiments')
+    ->select('article_idx', 'article_fk', 'quote_text', 'label', 'score_positive', 'score_negative', 'score_neutral')
+    ->get();
+
+
+        
+        // Mengirim data ke view
+        return view('sentiment', compact('batchStats', 'newsSentiments'));
     }
     
     public function analyze(Request $request)
@@ -25,7 +36,7 @@ class SentimentController extends Controller
             'language' => 'nullable|string|in:id,en'
         ]);
         
-        // Simulate sentiment analysis
+        // Simulasi analisis sentimen
         $sentiments = ['positive', 'negative', 'neutral'];
         $randomSentiment = $sentiments[array_rand($sentiments)];
         $confidence = rand(70, 100);

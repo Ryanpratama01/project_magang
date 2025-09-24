@@ -46,6 +46,9 @@ Route::post('/reset-password', [AuthController::class, 'reset'])
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/data', [\App\Http\Controllers\DashboardController::class, 'data'])
+    ->name('dashboard.data');
+
     Route::get('/scraping', [ScrapingController::class, 'index'])->name('scraping');
     Route::post('/scraping/start', [ScrapingController::class, 'startScraping'])->name('scraping.start');
     Route::post('/scraping/search', [ScrapingController::class, 'searchNews'])->name('scraping.search');

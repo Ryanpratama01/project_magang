@@ -54,7 +54,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/scraping/search', [ScrapingController::class, 'searchNews'])->name('scraping.search');
     
     Route::get('/analisis-sentimen', [SentimentController::class, 'index'])->name('sentiment');
-    Route::post('/analisis-sentimen/analyze', [SentimentController::class, 'analyze'])->name('sentiment.analyze');
+    // Route untuk menerima analisis teks
+    Route::post('/analyze-sentiment', [SentimentController::class, 'analyze'])->name('analyze.sentiment');
+
     // Route::get('/news-distribution', [SentimentController::class, 'index']);
     
     Route::get('/cetak-laporan', [ReportController::class, 'index'])->name('report');

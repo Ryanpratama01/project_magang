@@ -65,7 +65,7 @@
                     </div>
                 </div>
                 
-                <form id="linkScrapingForm" class="space-y-4">
+                <form method="POST" action="{{ route('scrape.news.links') }}" id="linkScrapingForm" class="space-y-4">
                     @csrf
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Daftar Link Berita</label>
@@ -96,7 +96,6 @@ https://example.com/berita-3"></textarea>
                     <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
                         <i class="fas fa-search text-blue-700"></i>
                     </div>
-                    
                     <div>
                         <h3 class="text-xl font-bold text-gray-800">Cari Berita</h3>
                         <p class="text-gray-600 text-sm">Cari berita berdasarkan kata kunci</p>
@@ -135,7 +134,7 @@ https://example.com/berita-3"></textarea>
                     </div>
                     
                     <button type="submit" id="startSearchScraping" class="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium">
-                        <i class="fas fa-search mr-2"></i>Cari & Scrape
+                        <i class="fas fa-search mr-2"></i>Cari
                     </button>
                 </form>
             </div>
@@ -157,7 +156,7 @@ https://example.com/berita-3"></textarea>
                     </div>
                 </div>
                 
-                <form id="youtubeUrlForm" class="space-y-4">
+                <form method="POST" action="{{ route('scrape.youtube.links') }}" id="youtubeUrlForm" class="space-y-4">
                     @csrf
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">URL Video YouTube</label>
@@ -222,14 +221,14 @@ https://youtu.be/SHORT_URL"></textarea>
                     </div>
                     
                     <button type="submit" id="startYoutubeSearch" class="w-full px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red -700 transition-all duration-200 font-medium">
-                        <i class="fas fa-search mr-2"></i>Cari & Scrape Komentar
+                        <i class="fas fa-search mr-2"></i>Cari Komentar
                     </button>
                 </form>
             </div>
         </div>
     </div>
     
-    <!-- Scraping Progress -->
+    <!-- Scraping Progress
     <div id="scrapingProgress" class="bg-white rounded-2xl p-6 card-shadow hidden">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-bold text-gray-800">Progress Scraping</h3>
@@ -247,7 +246,7 @@ https://youtu.be/SHORT_URL"></textarea>
             </div>
             <div id="currentTask" class="text-sm text-gray-600">Menunggu...</div>
         </div>
-    </div>
+    </div> -->
     
     <!-- Results Table -->
     <div id="resultsSection" class="bg-white rounded-2xl card-shadow">
@@ -255,11 +254,14 @@ https://youtu.be/SHORT_URL"></textarea>
             <div class="flex items-center justify-between">
                 <div>
                     <h3 class="text-xl font-bold text-gray-800">Hasil Scraping</h3>
-                    <p class="text-gray-600 text-sm" id="resultsDescription">Daftar data yang berhasil diambil</p>
+                    <!-- <p class="text-gray-600 text-sm" id="resultsDescription">Daftar data yang berhasil diambil</p> -->
                 </div>
                 <div class="flex space-x-3">
                     <button id="selectAll" class="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                         <i class="fas fa-check-square mr-2"></i>Pilih Semua
+                    </button>
+                    <button id="deleteSelected" class="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                        <i class="fas fa-trash mr-2"></i>Hapus Terpilih
                     </button>
                     <button id="analyzeSelected" class="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200">
                         <i class="fas fa-brain mr-2"></i>Analisis Sentimen
@@ -338,9 +340,15 @@ https://youtu.be/SHORT_URL"></textarea>
 
 @push('scripts')
 <script>
+    // buat global agar bisa diakses viewItem/deleteItem di luar ready()
+window.currentCategory = 'news';
+let currentPage = 1;
+const perPage = 50;
+// filter pencarian YouTube (global)
+const ytFilter = { q: '', from: '', to: '' };
+
 $(document).ready(function() {
     let isScrapingActive = false;
-    let currentCategory = 'news';
     
     // Category Selection
     $('.category-card').on('click', function() {
@@ -348,13 +356,13 @@ $(document).ready(function() {
                            .addClass('border-gray-200 bg-gray-50');
         
         if ($(this).is('#categoryNews')) {
-            currentCategory = 'news';
+            window.currentCategory = 'news';
             $(this).addClass('category-active border-blue-500 bg-blue-50');
             $('#newsSection').removeClass('hidden');
             $('#youtubeSection').addClass('hidden');
             $('#resultsDescription').text('Daftar berita yang berhasil diambil');
         } else {
-            currentCategory = 'youtube';
+            window.currentCategory = 'youtube';
             $(this).addClass('category-active border-red-500 bg-red-50');
             $('#newsSection').addClass('hidden');
             $('#youtubeSection').removeClass('hidden');
@@ -362,12 +370,13 @@ $(document).ready(function() {
         }
         
         updateTableHeaders();
+        loadResults(1);
     });
     
     // Update table headers based on category
     function updateTableHeaders() {
         let headers = '';
-        if (currentCategory === 'news') {
+        if (window.currentCategory === 'news') {
             headers = `
                 <tr class="border-b border-gray-200">
                     <th class="text-left py-4 px-2 font-medium text-gray-700">
@@ -375,7 +384,7 @@ $(document).ready(function() {
                     </th>
                     <th class="text-left py-4 px-4 font-medium text-gray-700">Kutipan</th>
                     <th class="text-left py-4 px-4 font-medium text-gray-700">Berita URL</th>
-                    <th class="text-left py-4 px-4 font-medium text-gray-700">Tanggal</th>
+                    <th class="text-left py-4 px-4 font-medium text-gray-700">Tanggal Publish</th>
                     <th class="text-left py-4 px-4 font-medium text-gray-700">Speaker</th>
                     <th class="text-left py-4 px-4 font-medium text-gray-700">Aksi</th>
                 </tr>
@@ -388,7 +397,6 @@ $(document).ready(function() {
                     </th>
                     <th class="text-left py-4 px-4 font-medium text-gray-700">Komentar</th>
                     <th class="text-left py-4 px-4 font-medium text-gray-700">Komentar Bersih</th>
-                    <th class="text-left py-4 px-4 font-medium text-gray-700">Komentar Bersih</th>
                     <th class="text-left py-4 px-4 font-medium text-gray-700">Video URL</th>
                     <th class="text-left py-4 px-4 font-medium text-gray-700">Author</th>
                     <th class="text-left py-4 px-4 font-medium text-gray-700">Tanggal</th>
@@ -397,172 +405,454 @@ $(document).ready(function() {
             `;
         }
         $('#tableHeader').html(headers);
-        loadSampleData();
+        loadResults(1);
     }
-    
-    // Load sample data based on category
-    function loadSampleData() {
-        let tbody = '';
-        $('#totalCount').text(currentCategory === 'news' ? '10' : '15');
-        
-        if (currentCategory === 'news') {
-            for (let i = 1; i <= 10; i++) {
-                tbody += `
-                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                        <td class="py-4 px-2">
-                            <input type="checkbox" name="selected_items[]" value="${i}" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                        </td>
-                        <td class="py-4 px-4">
-                            <div>
-                                <h4 class="font-medium text-gray-800 mb-1">Berita Sample ${i} - Lorem ipsum dolor sit amet</h4>
-                                <p class="text-gray-600 text-sm">Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>
-                            </div>
-                        </td>
-                        <td class="py-4 px-4">
-                            <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">detik.com</span>
-                        </td>
-                        <td class="py-4 px-4">
-                            <span class="text-gray-600 text-sm">${new Date(Date.now() - i * 24 * 60 * 60 * 1000).toLocaleDateString('id-ID')}</span>
-                        </td>
-                        <td class="py-4 px-4">
-                            <span class="text-gray-700 text-sm">@user${i}</span>
-                        </td>
-                        <td class="py-4 px-4">
-                            <div class="flex space-x-2">
-                                <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="viewItem(${i}, 'news')">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="text-red-600 hover:text-red-800 text-sm" onclick="deleteItem(${i})">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }
-        } else {
-            for (let i = 1; i <= 15; i++) {
-                tbody += `
-                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                        <td class="py-4 px-2">
-                            <input type="checkbox" name="selected_items[]" value="${i}" class="rounded border-gray-300 text-red-600 focus:ring-red-500">
-                        </td>
-                        <td class="py-4 px-4">
-                            <div class="max-w-md">
-                                <p class="text-gray-800 text-sm">Komentar YouTube sample ${i}: Videonya bagus banget! Sangat membantu untuk belajar...</p>
-                            </div>
-                        </td>
-                        <td class="py-4 px-4">
-                            <div class="max-w-md">
-                                <p class="text-gray-800 text-sm">Komentar YouTube sample ${i}: Videonya bagus banget! Sangat membantu untuk belajar...</p>
-                            </div>
-                        </td>
-                        <td class="py-4 px-4">
-                            <div class="max-w-md">
-                                <p class="text-gray-800 text-sm">Komentar YouTube sample ${i}: Videonya bagus banget! Sangat membantu untuk belajar...</p>
-                            </div>
-                        </td>
-                        <td class="py-4 px-4">
-                            <div class="max-w-xs">
-                                <p class="font-medium text-gray-800 text-sm">Tutorial ${i}</p>
-                                <p class="text-gray-600 text-xs">Channel Name</p>
-                            </div>
-                        </td>
-                        <td class="py-4 px-4">
-                            <span class="text-gray-700 text-sm">@user${i}</span>
-                        </td>
-                        <td class="py-4 px-4">
-                            <span class="text-gray-600 text-sm">${new Date(Date.now() - i * 60 * 60 * 1000).toLocaleDateString('id-ID')}</span>
-                        </td>
-                        <td class="py-4 px-4">
-                            <div class="flex space-x-2">
-                                <button class="text-red-600 hover:text-red-800 text-sm" onclick="viewItem(${i}, 'youtube')">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="text-red-600 hover:text-red-800 text-sm" onclick="deleteItem(${i})">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }
+
+    // ✅ Ubah dari 'async function loadResults' menjadi:
+    window.loadResults = async function(page = 1) {
+        currentPage = page;
+
+        const isYT = (window.currentCategory === 'youtube');
+        const q    = isYT ? (ytFilter.q    || '') : ($('#searchFilter').val() || '').trim();
+        const from = isYT ? (ytFilter.from || '') : ($('input[name="date_from"]').val() || '');
+        const to   = isYT ? (ytFilter.to   || '') : ($('input[name="date_to"]').val()   || '');
+
+        const base = (window.currentCategory === 'youtube')
+          ? "{{ route('scraping.youtube.results') }}"
+          : "{{ route('scraping.results') }}";
+
+        const params = new URLSearchParams({ page, per_page: perPage });
+        if (q)    params.set('q', q);
+        if (from) params.set('date_from', from);
+        if (to)   params.set('date_to', to);
+
+        try {
+          const res  = await fetch(`${base}?${params.toString()}`, { headers: { "Accept": "application/json" }});
+          const json = await res.json();
+          const rows = Array.isArray(json.data) ? json.data : [];
+          const meta = json.meta || { current_page:1, last_page:1, per_page: perPage, total: rows.length };
+
+          const start = rows.length ? (meta.current_page - 1) * meta.per_page + 1 : 0;
+          const end   = rows.length ? start + rows.length - 1 : 0;
+          $('#showingRange').text(`${start}-${end}`);
+          $('#totalItems').text(meta.total);
+          $('#totalCount').text(meta.total);
+
+          let tbodyHtml = '';
+
+          if (window.currentCategory === 'youtube') {
+            tbodyHtml = rows.map((row, i) => {
+              const title   = row.video_title || '-';
+              const author = row.author_name || '-';
+              const url     = row.video_url || '#';
+              const comment = (row.comment_text || '').toString();
+              const clean   = (row.cleaned_text || '').toString();
+              const tanggal = row.published_at || '-';
+
+              return `
+                <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                  <td class="py-4 px-2">
+                    <input type="checkbox" name="selected_items[]" value="${row.id || i}" class="rounded border-gray-300 text-red-600 focus:ring-red-500">
+                  </td>
+                  <td class="py-4 px-4"><div class="text-sm text-gray-800">${escapeHtml(comment.slice(0,200))}</div></td>
+                  <td class="py-4 px-4">
+                    <div class="text-sm text-gray-800">
+                      ${ clean ? escapeHtml(clean.slice(0,200)) : '<span class="text-gray-400">-</span>' }
+                    </div>
+                  </td>
+                  <td class="py-4 px-4">
+                    <a href="${url}" target="_blank" class="text-sm text-blue-700 underline">${escapeHtml(title)}</a>
+                  </td>
+                  <td class="py-4 px-4"><span class="text-sm text-gray-700">${escapeHtml(author)}</span></td>
+                  <td class="py-4 px-4"><span class="text-sm text-gray-600">${escapeHtml(tanggal)}</span></td>
+                  <td class="py-4 px-4">
+                    <div class="flex space-x-2">
+                      <button class="text-red-600 hover:text-red-800 text-sm" onclick="viewItem(${row.id}, 'youtube')">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button type="button" class="text-red-600 hover:text-red-800 text-sm" onclick="deleteItem(${row.id})">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+
+                </tr>`;
+            }).join('');
+          } 
+          else {
+            // render NEWS
+            tbodyHtml = rows.map((row, i) => {
+              const host = (() => { try { return new URL(row.news_url).host } catch { return row.news_source || '-' }})();
+              const kutipan = (row.original_text || '').toString().slice(0, 160);
+              const tanggal = row.published_at || '-';
+              const speaker = row.speaker || '-';
+              const status  = row.processing_status || '-';
+              return `
+                <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                  <td class="py-4 px-2">
+                    <input type="checkbox" name="selected_items[]" value="${row.id || i}" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                  </td>
+                  <td class="py-4 px-4">
+                    <div>
+                      <p class="text-gray-800 text-sm">${escapeHtml(kutipan)}</p>
+                      ${row.context ? `<p class="text-gray-500 text-xs mt-1">${escapeHtml(row.context)}</p>` : ''}
+                      <p class="text-gray-400 text-xs mt-1">Status: ${escapeHtml(status)}</p>
+                    </div>
+                  </td>
+                  <td class="py-4 px-4"><a href="${row.news_url}" target="_blank" class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${escapeHtml(host)}</a></td>
+                  <td class="py-4 px-4"><span class="text-gray-600 text-sm">${escapeHtml(tanggal)}</span></td>
+                  <td class="py-4 px-4"><span class="text-gray-700 text-sm">${escapeHtml(speaker)}</span></td>
+                  <td class="py-4 px-4">
+                    <div class="flex space-x-2">
+                      <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="viewItem(${row.id}, 'news')"><i class="fas fa-eye"></i></button>
+                      <button type="button" class="text-red-600 hover:text-red-800 text-sm" onclick="deleteItem(${row.id})"><i class="fas fa-trash"></i></button>
+                    </div>
+                  </td>
+                </tr>`;
+            }).join('');
+          }
+
+          $('#dynamicTableBody').html(tbodyHtml || `<tr><td colspan="7" class="py-6 text-center text-gray-500">Belum ada data</td></tr>`);
+          renderPagination(meta);
+        } catch (e) {
+          console.error(e);
+          $('#dynamicTableBody').html(`<tr><td colspan="7" class="py-6 text-center text-red-600">Gagal memuat data</td></tr>`);
         }
-        $('#dynamicTableBody').html(tbody);
-        $('#showingRange').text(`1-${currentCategory === 'news' ? '10' : '15'}`);
-        $('#totalItems').text(currentCategory === 'news' ? '10' : '15');
+    }; // ✅ Tutup window.loadResults
+
+
+    function renderPagination(meta) {
+    const prevDisabled = meta.current_page <= 1 ? 'disabled opacity-50' : '';
+    const nextDisabled = meta.current_page >= meta.last_page ? 'disabled opacity-50' : '';
+
+    const html = `
+        <button class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 ${prevDisabled}"
+                data-page="${meta.current_page - 1}">
+        <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm">${meta.current_page}</button>
+        <button class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 ${nextDisabled}"
+                data-page="${meta.current_page + 1}">
+        <i class="fas fa-chevron-right"></i>
+        </button>
+    `;
+
+    $('#paginationControls').html(html);
     }
+
+    // delegasi klik
+    $(document).on('click', '#paginationControls button[data-page]', function () {
+    const to = parseInt($(this).attr('data-page'), 10);
+    if (!isNaN(to) && to > 0) { 
+        loadResults(to);
+        // scroll ke atas tabel biar nyaman
+        $('html,body').animate({ scrollTop: $('#resultsSection').offset().top - 80 }, 200);
+    }
+    });
+
+function debounce(fn, delay = 350) {
+  let t;
+  return function (...args) {
+    const ctx = this;                // simpan 'this' dari event handler
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(ctx, args), delay); // panggil dengan konteks asli
+  };
+}
+
+
+    window.escapeHtml = function (s) {
+        return String(s).replace(/[&<>"']/g, m => ({
+            '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+        }[m]));
+    };
+
+    function highlight(text, q) {
+  if (!q) return escapeHtml(String(text ?? ''));
+  const esc = escapeHtml(String(text ?? ''));
+  // buat regex case-insensitive, escape karakter spesial di q
+  const safe = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(safe, 'gi');
+  return esc.replace(re, (m) => `<mark class="bg-yellow-200">${m}</mark>`);
+}
+
+
+    // // Load sample data based on category
+    // function loadSampleData() {
+    //     let tbody = '';
+    //     $('#totalCount').text(currentCategory === 'news' ? '10' : '15');
+        
+    //     if (currentCategory === 'news') {
+    //         for (let i = 1; i <= 10; i++) {
+    //             tbody += `
+    //                 <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+    //                     <td class="py-4 px-2">
+    //                         <input type="checkbox" name="selected_items[]" value="${i}" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+    //                     </td>
+    //                     <td class="py-4 px-4">
+    //                         <div>
+    //                             <h4 class="font-medium text-gray-800 mb-1">Berita Sample ${i} - Lorem ipsum dolor sit amet</h4>
+    //                             <p class="text-gray-600 text-sm">Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>
+    //                         </div>
+    //                     </td>
+    //                     <td class="py-4 px-4">
+    //                         <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">detik.com</span>
+    //                     </td>
+    //                     <td class="py-4 px-4">
+    //                         <span class="text-gray-600 text-sm">${new Date(Date.now() - i * 24 * 60 * 60 * 1000).toLocaleDateString('id-ID')}</span>
+    //                     </td>
+    //                     <td class="py-4 px-4">
+    //                         <span class="text-gray-700 text-sm">@user${i}</span>
+    //                     </td>
+    //                     <td class="py-4 px-4">
+    //                         <div class="flex space-x-2">
+    //                             <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="viewItem(${i}, 'news')">
+    //                                 <i class="fas fa-eye"></i>
+    //                             </button>
+    //                             <button class="text-red-600 hover:text-red-800 text-sm" onclick="deleteItem(${i})">
+    //                                 <i class="fas fa-trash"></i>
+    //                             </button>
+    //                         </div>
+    //                     </td>
+    //                 </tr>
+    //             `;
+    //         }
+    //     } else {
+    //         for (let i = 1; i <= 15; i++) {
+    //             tbody += `
+    //                 <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+    //                     <td class="py-4 px-2">
+    //                         <input type="checkbox" name="selected_items[]" value="${i}" class="rounded border-gray-300 text-red-600 focus:ring-red-500">
+    //                     </td>
+    //                     <td class="py-4 px-4">
+    //                         <div class="max-w-md">
+    //                             <p class="text-gray-800 text-sm">Komentar YouTube sample ${i}: Videonya bagus banget! Sangat membantu untuk belajar...</p>
+    //                         </div>
+    //                     </td>
+    //                     <td class="py-4 px-4">
+    //                         <div class="max-w-md">
+    //                             <p class="text-gray-800 text-sm">Komentar YouTube sample ${i}: Videonya bagus banget! Sangat membantu untuk belajar...</p>
+    //                         </div>
+    //                     </td>
+    //                     <td class="py-4 px-4">
+    //                         <div class="max-w-md">
+    //                             <p class="text-gray-800 text-sm">Komentar YouTube sample ${i}: Videonya bagus banget! Sangat membantu untuk belajar...</p>
+    //                         </div>
+    //                     </td>
+    //                     <td class="py-4 px-4">
+    //                         <div class="max-w-xs">
+    //                             <p class="font-medium text-gray-800 text-sm">Tutorial ${i}</p>
+    //                             <p class="text-gray-600 text-xs">Channel Name</p>
+    //                         </div>
+    //                     </td>
+    //                     <td class="py-4 px-4">
+    //                         <span class="text-gray-700 text-sm">@user${i}</span>
+    //                     </td>
+    //                     <td class="py-4 px-4">
+    //                         <span class="text-gray-600 text-sm">${new Date(Date.now() - i * 60 * 60 * 1000).toLocaleDateString('id-ID')}</span>
+    //                     </td>
+    //                     <td class="py-4 px-4">
+    //                         <div class="flex space-x-2">
+    //                             <button class="text-red-600 hover:text-red-800 text-sm" onclick="viewItem(${i}, 'youtube')">
+    //                                 <i class="fas fa-eye"></i>
+    //                             </button>
+    //                             <button class="text-red-600 hover:text-red-800 text-sm" onclick="deleteItem(${i})">
+    //                                 <i class="fas fa-trash"></i>
+    //                             </button>
+    //                         </div>
+    //                     </td>
+    //                 </tr>
+    //             `;
+    //         }
+    //     }
+    //     $('#dynamicTableBody').html(tbody);
+    //     $('#showingRange').text(`1-${currentCategory === 'news' ? '10' : '15'}`);
+    //     $('#totalItems').text(currentCategory === 'news' ? '10' : '15');
+    // }
     
     // Initialize with news data
     updateTableHeaders();
     
     // News Scraping Forms
-    $('#linkScrapingForm').on('submit', function(e) {
-        e.preventDefault();
-        const links = $('#newsLinks').val().trim();
+    //$('#linkScrapingForm').on('submit', function(e) {
+        //e.preventDefault();
+        //const links = $('#newsLinks').val().trim();
         
-        if (!links) {
-            alert('Masukkan minimal satu link berita!');
-            return;
-        }
+        //if (!links) {
+           // alert('Masukkan minimal satu link berita!');
+            //return;
+        //}
         
-        startScraping('news_links', { links: links });
-    });
+        //startScraping('news_links', { links: links });
+    //});
     
-    $('#searchScrapingForm').on('submit', function(e) {
-        e.preventDefault();
-        const formData = {
-            source: $('input[name="source"]').val(),
-            keywords: $('input[name="keywords"]').val(),
-            date_from: $('input[name="date_from"]').val(),
-            date_to: $('input[name="date_to"]').val()
-        };
+    // $('#searchScrapingForm').on('submit', function(e) {
+    //     e.preventDefault();
+    //     const formData = {
+    //         source: $('input[name="source"]').val(),
+    //         keywords: $('input[name="keywords"]').val(),
+    //         date_from: $('input[name="date_from"]').val(),
+    //         date_to: $('input[name="date_to"]').val()
+        // };
         
-        if (!formData.keywords) {
-            alert('Masukkan kata kunci pencarian!');
-            return;
-        }
+        // if (!formData.keywords) {
+        //     alert('Masukkan kata kunci pencarian!');
+        //     return;
+        // }
         
-        startScraping('news_search', formData);
+    //     startScraping('news_search', formData);
+    // });
+    $('#searchScrapingForm').on('submit', async function (e) {
+    e.preventDefault();
+
+    const q     = ($('input[name="keywords"]').val() || '').toString().trim();
+    const from  = $('input[name="date_from"]').val() || '';
+    const to    = $('input[name="date_to"]').val() || '';
+
+    console.log('SUBMIT CARI =>', { q, from, to });
+
+    // Kalau semua kosong, balik ke mode normal (browse)
+    if (q === '' && from === '' && to === '') {
+        $('#paginationControls').show();
+        await loadResults(1);
+        return;
+    }
+
+    $('#paginationControls').hide();
+
+    try {
+        const params = new URLSearchParams();
+        if (q)    params.set('q', q);
+        if (from) params.set('date_from', from);
+        if (to)   params.set('date_to', to);
+
+        const url = "{{ route('scraping.search') }}" + '?' + params.toString();
+        const res = await fetch(url, { headers: { "Accept": "application/json" }});
+        const json = await res.json();
+
+        console.log('HASIL CARI:', json);
+
+        const rows  = Array.isArray(json.data) ? json.data : [];
+        const total = (json.meta && typeof json.meta.total === 'number') ? json.meta.total : rows.length;
+
+        $('#totalCount').text(total);
+        $('#showingRange').text(rows.length ? `1-${rows.length}` : '0-0');
+        $('#totalItems').text(total);
+
+        const tbodyHtml = rows.map((row, i) => {
+        const host    = (() => { try { return new URL(row.news_url).host } catch { return row.news_source || '-' }})();
+        const kutipan = (row.original_text || '').toString().slice(0, 160);
+        const tanggal = row.published_at || '-';
+        const speaker = row.speaker || '-';
+        const status  = row.processing_status || '-';
+
+        return `
+            <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+            <td class="py-4 px-2">
+                <input type="checkbox" name="selected_items[]" value="${row.id || i}"
+                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+            </td>
+            <td class="py-4 px-4">
+                <div>
+                <p class="text-gray-800 text-sm">${highlight(kutipan, q)}</p>
+                ${row.context ? `<p class="text-gray-500 text-xs mt-1">${highlight(row.context, q)}</p>` : ''}
+                <p class="text-gray-400 text-xs mt-1">Status: ${escapeHtml(status)}</p>
+                </div>
+            </td>
+            <td class="py-4 px-4">
+                <a href="${row.news_url}" target="_blank"
+                class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                ${highlight(host, q)}
+                </a>
+            </td>
+            <td class="py-4 px-4"><span class="text-gray-600 text-sm">${escapeHtml(tanggal)}</span></td>
+            <td class="py-4 px-4"><span class="text-gray-700 text-sm">${highlight(speaker, q)}</span></td>
+            <td class="py-4 px-4">
+                <div class="flex space-x-2">
+                <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="viewItem(${row.id || i}, 'news')">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button type="button" class="text-red-600 hover:text-red-800 text-sm" onclick="deleteItem(${row.id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+                </div>
+            </td>
+            </tr>`;
+        }).join('');
+
+        $('#dynamicTableBody').html(
+        tbodyHtml || `<tr><td colspan="6" class="py-6 text-center text-gray-500">
+            Tidak ada hasil untuk "${escapeHtml(q)}"
+        </td></tr>`
+        );
+
+    } catch (err) {
+        console.error(err);
+        $('#dynamicTableBody').html(
+        `<tr><td colspan="6" class="py-6 text-center text-red-600">Gagal memuat hasil pencarian</td></tr>`
+        );
+    }
     });
-    
+
     // YouTube Scraping Forms
-    $('#youtubeUrlForm').on('submit', function(e) {
-        e.preventDefault();
-        const urls = $('#youtubeUrls').val().trim();
-        const scrapeTypes = $('input[name="scrape_types[]"]:checked').map(function() {
-            return $(this).val();
-        }).get();
+    // $('#youtubeUrlForm').on('submit', function(e) {
+    //     e.preventDefault();
+    //     const urls = $('#youtubeUrls').val().trim();
+    //     const scrapeTypes = $('input[name="scrape_types[]"]:checked').map(function() {
+    //         return $(this).val();
+    //     }).get();
         
-        if (!urls) {
-            alert('Masukkan minimal satu URL YouTube!');
-            return;
-        }
+    //     if (!urls) {
+    //         alert('Masukkan minimal satu URL YouTube!');
+    //         return;
+    //     }
         
-        if (scrapeTypes.length === 0) {
-            alert('Pilih minimal satu jenis data untuk di-scrape!');
-            return;
-        }
+    //     if (scrapeTypes.length === 0) {
+    //         alert('Pilih minimal satu jenis data untuk di-scrape!');
+    //         return;
+    //     }
         
-        startScraping('youtube_urls', { urls: urls, types: scrapeTypes });
-    });
-    
-    $('#youtubeSearchForm').on('submit', function(e) {
-        e.preventDefault();
-        const formData = {
-            search_query: $('input[name="search_query"]').val(),
-            video_limit: $('select[name="video_limit"]').val(),
-            duration_filter: $('select[name="duration_filter"]').val(),
-            upload_date: $('select[name="upload_date"]').val()
-        };
-        
-        if (!formData.search_query) {
-            alert('Masukkan kata kunci pencarian!');
-            return;
-        }
-        
-        startScraping('youtube_search', formData);
-    });
+    //     startScraping('youtube_urls', { urls: urls, types: scrapeTypes });
+    // });
+    // --- STEP 2: helper tanggal untuk preset YouTube ---
+  // helper konversi preset waktu → rentang tanggal (YYYY-MM-DD)
+function pad2(n){ return String(n).padStart(2,'0'); }
+function formatYMD(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function computeUploadRange(key) {
+  if (!key) return { from:'', to:'' };           // Semua Waktu
+  const now = new Date();
+  if (key === 'hour' || key === 'today') {
+    const ymd = formatYMD(now); return { from: ymd, to: ymd };
+  }
+  if (key === 'week')  { const f=new Date(now); f.setDate(now.getDate()-7);  return { from:formatYMD(f), to:formatYMD(now) }; }
+  if (key === 'month') { const f=new Date(now); f.setMonth(now.getMonth()-1); return { from:formatYMD(f), to:formatYMD(now) }; }
+  if (key === 'year')  { const f=new Date(now); f.setFullYear(now.getFullYear()-1); return { from:formatYMD(f), to:formatYMD(now) }; }
+  return { from:'', to:'' };
+}
+
+// handler baru: cari komentar YouTube dengan preset waktu
+$('#youtubeSearchForm').on('submit', async function (e) {
+  e.preventDefault();
+
+  const q      = ($('input[name="search_query"]').val() || '').trim();
+  const preset = ($('select[name="upload_date"]').val() || '').trim();
+
+  if (!q) { alert('Masukkan kata kunci pencarian!'); return; }
+
+  const { from, to } = computeUploadRange(preset);
+
+  // simpan ke state filter
+  ytFilter.q    = q;
+  ytFilter.from = from;
+  ytFilter.to   = to;
+
+  // pastikan tab kategori di YouTube
+  if (window.currentCategory !== 'youtube') $('#categoryYoutube').click();
+
+  // tampilkan hasil ke tabel
+  $('#paginationControls').show();
+  await loadResults(1);
+});
+
     
     // Clear buttons
     $('#clearLinks').on('click', function() {
@@ -630,7 +920,7 @@ $(document).ready(function() {
             $('#scrapingProgress').addClass('hidden');
             $('#progressBar').css('width', '0%');
             $('#progressText').text('0/0');
-            loadSampleData(); // Reload data to show new results
+            loadResults(); // Reload data to show new results
         }, 2000);
     }
     
@@ -660,19 +950,131 @@ $(document).ready(function() {
             return;
         }
         
-        const itemType = currentCategory === 'news' ? 'berita' : 'komentar';
+        const itemType = window.currentCategory === 'news' ? 'berita' : 'komentar';
         if (confirm(`Analisis ${selected} ${itemType} yang dipilih?`)) {
             window.location.href = '{{ route("sentiment") }}';
         }
     });
     
-    // Search Filter
-    $('#searchFilter').on('keyup', function() {
-        const value = $(this).val().toLowerCase();
-        $('#dynamicTableBody tr').filter(function() {
-            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
-        });
-    });
+
+// cegah Enter di field cari dari submit/refresh form
+$(document).on('keydown', '#searchFilter', function (e) {
+  if (e.key === 'Enter') e.preventDefault();
+});
+
+// handler cari: delegated + input event + reset saat kosong (NEWS/YOUTUBE)
+$(document).on('input', '#searchFilter', debounce(async function () {
+  const q = ($(this).val() || '').toString().trim();
+
+  // jika kosong -> kembali ke mode normal (pakai pagination)
+  if (q === '') {
+    $('#paginationControls').show();
+    await loadResults(1);
+    return;
+  }
+
+  $('#paginationControls').hide();
+
+  try {
+    let url;
+    if (window.currentCategory === 'youtube') {
+      // endpoint youtube (mendukung q, page, per_page)
+      const params = new URLSearchParams({ q, page: 1, per_page: perPage });
+      url = "{{ route('scraping.youtube.results') }}" + "?" + params.toString();
+    } else {
+      // endpoint news
+      url = "{{ route('scraping.search') }}" + `?q=${encodeURIComponent(q)}`;
+    }
+
+    const res  = await fetch(url, { headers: { "Accept": "application/json" }});
+    const json = await res.json();
+    const rows = Array.isArray(json.data) ? json.data : [];
+    const total = (json.meta && typeof json.meta.total === 'number') ? json.meta.total : rows.length;
+
+    $('#totalCount').text(total);
+    $('#showingRange').text(rows.length ? `1-${rows.length}` : '0-0');
+    $('#totalItems').text(total);
+
+    let tbodyHtml = '';
+
+    if (window.currentCategory === 'youtube') {
+      // renderer YOUTUBE saat pencarian
+      tbodyHtml = rows.map((row, i) => {
+        const comment = (row.comment_text || '').toString();
+        const clean   = (row.cleaned_text || '').toString();
+        const url     = row.video_url || '#';
+        const title   = row.video_title || '-';
+        const author  = row.author_name   || '-';   // <- pakai author_name
+        const tanggal = row.published_at || '-';
+
+        return `
+          <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+            <td class="py-4 px-2">
+              <input type="checkbox" name="selected_items[]" value="${row.id || i}" class="rounded border-gray-300 text-red-600 focus:ring-red-500">
+            </td>
+            <td class="py-4 px-4"><div class="text-sm text-gray-800">${highlight(comment.slice(0,200), q)}</div></td>
+            <td class="py-4 px-4">
+              <div class="text-sm text-gray-800">
+                ${ clean ? escapeHtml(clean.slice(0,200)) : '<span class="text-gray-400">-</span>' }
+              </div>
+            </td>
+            <td class="py-4 px-4"><a href="${url}" target="_blank" class="text-sm text-blue-700 underline">${escapeHtml(title)}</a></td>
+            <td class="py-4 px-4"><span class="text-sm text-gray-700">${escapeHtml(author)}</span></td>
+            <td class="py-4 px-4"><span class="text-sm text-gray-600">${escapeHtml(tanggal)}</span></td>
+            <td class="py-4 px-4">
+              <div class="flex space-x-2">
+                <button class="text-red-600 hover:text-red-800 text-sm" onclick="/* TODO: detail youtube */"><i class="fas fa-eye"></i></button>
+                <!-- TODO: buat delete youtube -->
+              </div>
+            </td>
+          </tr>`;
+      }).join('');
+    } else {
+      // renderer NEWS (tetap milikmu seperti semula, pakai highlight)
+      tbodyHtml = rows.map((row, i) => {
+        const host    = (() => { try { return new URL(row.news_url).host } catch { return row.news_source || '-' }})();
+        const kutipan = (row.original_text || '').toString().slice(0, 160);
+        const tanggal = row.published_at || '-';
+        const speaker = row.speaker || '-';
+        const status  = row.processing_status || '-';
+
+        return `
+          <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+            <td class="py-4 px-2">
+              <input type="checkbox" name="selected_items[]" value="${row.id || i}" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+            </td>
+            <td class="py-4 px-4">
+              <div>
+                <p class="text-gray-800 text-sm">${highlight(kutipan, q)}</p>
+                ${row.context ? `<p class="text-gray-500 text-xs mt-1">${highlight(row.context, q)}</p>` : ''}
+                <p class="text-gray-400 text-xs mt-1">Status: ${escapeHtml(status)}</p>
+              </div>
+            </td>
+            <td class="py-4 px-4"><a href="${row.news_url}" target="_blank" class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${highlight(host, q)}</a></td>
+            <td class="py-4 px-4"><span class="text-gray-600 text-sm">${escapeHtml(tanggal)}</span></td>
+            <td class="py-4 px-4"><span class="text-gray-700 text-sm">${highlight(speaker, q)}</span></td>
+            <td class="py-4 px-4">
+              <div class="flex space-x-2">
+                <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="viewItem(${row.id || i}, 'news')"><i class="fas fa-eye"></i></button>
+                <button type="button" class="text-red-600 hover:text-red-800 text-sm" onclick="deleteItem(${row.id})"><i class="fas fa-trash"></i></button>
+              </div>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    $('#dynamicTableBody').html(
+      tbodyHtml || `<tr><td colspan="7" class="py-6 text-center text-gray-500">Tidak ada hasil untuk "${escapeHtml(q)}"</td></tr>`
+    );
+
+  } catch (e) {
+    console.error(e);
+    $('#dynamicTableBody').html(`<tr><td colspan="7" class="py-6 text-center text-red-600">Gagal memuat hasil pencarian</td></tr>`);
+  }
+}, 350));
+
+
+
     
     // Source Filter
     $('#sourceFilter').on('change', function() {
@@ -688,80 +1090,304 @@ $(document).ready(function() {
 });
 
 // View Item Function
-function viewItem(id, type) {
-    let modalTitle = '';
-    let modalContent = '';
-    
+// View Item Function (fetch detail dari backend)
+async function viewItem(id, type) {
+  try {
     if (type === 'news') {
-        modalTitle = 'Detail Kutipan';
-        modalContent = `
-            <div class="space-y-4">
-                <div>
-                    <h4 class="font-bold text-lg mb-2">Berita Sample ${id}</h4>
-                    <div class="flex items-center space-x-4 text-sm text-gray-600 mb-4">
-                        <span><i class="fas fa-calendar mr-1"></i>16 September 2025</span>
-                        <span><i class="fas fa-globe mr-1"></i>detik.com</span>
-                    </div>
-                </div>
-                <div class="prose max-w-none">
-                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-                    <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-                </div>
-                <div class="flex space-x-3 pt-4 border-t">
-                    <button class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
-                        <i class="fas fa-brain mr-2"></i>Analisis Sentimen
-                    </button>
-                    <button class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                        <i class="fas fa-external-link-alt mr-2"></i>Buka Link Asli
-                    </button>
-                </div>
+      // ⬇️ generate URL dari named route scraping.item
+      const url = "{{ route('scraping.item', ['id' => '__ID__']) }}".replace('__ID__', encodeURIComponent(id));
+
+      const res = await fetch(url, { headers: { "Accept": "application/json" }});
+      if (!res.ok) { alert('Gagal memuat detail item.'); return; }
+      const json = await res.json();
+      const d = json?.data;
+      if (!d) { alert('Gagal memuat detail item.'); return; }
+
+      const title   = d.title || '(Tanpa judul)';
+      const source  = d.news_source || (d.news_url ? new URL(d.news_url).host : '-');
+      const tgl     = d.published_at || d.scraped_at || '-';
+      const speaker = d.speaker || '-';
+      const quote   = d.original_text || '';
+      const clean   = d.cleaned_text || '';
+
+      const linkBtn = d.news_url
+        ? `<a href="${d.news_url}" target="_blank" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+             <i class="fas fa-external-link-alt mr-2"></i>Buka Link Asli
+           </a>`
+        : '';
+
+      const cleanedBlock = clean && clean !== quote
+        ? `<div class="bg-gray-50 p-3 rounded-lg mt-3">
+             <div class="text-xs text-gray-500 mb-1">Teks Bersih:</div>
+             <p class="text-gray-800">${escapeHtml(clean)}</p>
+           </div>`
+        : '';
+
+      const modalHtml = `
+        <div class="space-y-4">
+          <div>
+            <h4 class="font-bold text-lg mb-2">${escapeHtml(title)}</h4>
+            <div class="flex items-center flex-wrap gap-4 text-sm text-gray-600 mb-2">
+              <span><i class="fas fa-calendar mr-1"></i>${escapeHtml(tgl)}</span>
+              <span><i class="fas fa-globe mr-1"></i>${escapeHtml(source)}</span>
+              <span><i class="fas fa-user mr-1"></i>${escapeHtml(speaker)}</span>
             </div>
-        `;
-    } else {
-        modalTitle = 'Detail Komentar YouTube';
-        modalContent = `
-            <div class="space-y-4">
-                <div>
-                    <h4 class="font-bold text-lg mb-2">Komentar dari @user${id}</h4>
-                    <div class="flex items-center space-x-4 text-sm text-gray-600 mb-4">
-                        <span><i class="far fa-calendar mr-1"></i>16 September 2025</span>
-                        <span><i class="far fa-thumbs-up mr-1"></i>${Math.floor(Math.random() * 100) + 1} likes</span>
-                        <span><i class="far fa-comment mr-1"></i>${Math.floor(Math.random() * 10) + 1} replies</span>
-                    </div>
-                </div>
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <p class="text-gray-800">Komentar YouTube sample ${id}: Videonya bagus banget! Sangat membantu untuk belajar. Terima kasih sudah berbagi ilmu yang bermanfaat. Semoga channelnya terus berkembang dan bisa memberikan konten-konten edukatif lainnya. Keep up the good work!</p>
-                </div>
-                <div class="bg-red-50 p-4 rounded-lg">
-                    <h5 class="font-medium text-red-800 mb-2">Video Information:</h5>
-                    <p class="text-red-700 text-sm"><strong>Title:</strong> Tutorial Sample ${id}</p>
-                    <p class="text-red-700 text-sm"><strong>Channel:</strong> Channel Name</p>
-                    <p class="text-red-700 text-sm"><strong>URL:</strong> https://youtube.com/watch?v=sample${id}</p>
-                </div>
-                <div class="flex space-x-3 pt-4 border-t">
-                    <button class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
-                        <i class="fas fa-brain mr-2"></i>Analisis Sentimen
-                    </button>
-                    <button class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                        <i class="fab fa-youtube mr-2"></i>Lihat Video
-                    </button>
-                </div>
-            </div>
-        `;
+            <div class="text-xs text-gray-500">Status: ${escapeHtml(d.status || '-')}</div>
+          </div>
+
+          <div class="bg-white border rounded-lg p-4">
+            <div class="text-xs text-gray-500 mb-1">Kutipan Asli:</div>
+            <p class="text-gray-900">${escapeHtml(quote)}</p>
+            ${cleanedBlock}
+          </div>
+
+          <div class="flex space-x-3 pt-4 border-t">
+            <button class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+              <i class="fas fa-brain mr-2"></i>Analisis Sentimen
+            </button>
+            ${linkBtn}
+          </div>
+        </div>
+      `;
+
+      $('#modalTitle').text('Detail Kutipan');
+      $('#modalContent').html(modalHtml);
+      $('#dynamicModal').removeClass('hidden').addClass('flex');
+      return;
     }
-    
-    $('#modalTitle').text(modalTitle);
-    $('#modalContent').html(modalContent);
-    $('#dynamicModal').removeClass('hidden').addClass('flex');
+
+    if (type === 'youtube') {
+      const url = "{{ route('scraping.youtube.item', ['id' => '__ID__']) }}".replace('__ID__', encodeURIComponent(id));
+      const res = await fetch(url, { headers: { "Accept": "application/json" }});
+      if (!res.ok) { alert('Gagal memuat detail komentar.'); return; }
+      const json = await res.json();
+      const d = json?.data; if (!d) { alert('Gagal memuat detail komentar.'); return; }
+
+      const title   = d.video_title || '(Tanpa judul)';
+      const host    = d.host || (d.video_url ? new URL(d.video_url).host : 'youtube.com');
+      const tgl     = d.published_at || d.scraped_at || '-';
+      const channel = d.channel_name || '-';
+      const author  = d.author_name ? '@'+d.author_name : '-';
+      const likes   = (d.likes_count ?? 0);
+      const replies = (d.replies_count ?? 0);
+      const comment = d.comment_text || '';
+      const clean   = (d.cleaned_text || '').trim();
+
+      const linkBtn = d.video_url
+        ? `<a href="${d.video_url}" target="_blank"
+             class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+             <i class="fas fa-external-link-alt mr-2"></i>Buka Video
+           </a>` : '';
+
+      const cleanedBlock = clean && clean !== comment
+        ? `<div class="bg-gray-50 p-3 rounded-lg mt-3">
+             <div class="text-xs text-gray-500 mb-1">Komentar Bersih:</div>
+             <p class="text-gray-800">${escapeHtml(clean)}</p>
+           </div>` : '';
+
+      const metaRight = `
+        <span class="ml-3 text-xs text-gray-500">❤ ${likes}</span>
+        <span class="ml-3 text-xs text-gray-500">↩ ${replies}</span>
+      `;
+
+      const modalHtml = `
+        <div class="space-y-4">
+          <div>
+            <h4 class="font-bold text-lg mb-2">${escapeHtml(title)}</h4>
+            <div class="flex items-center flex-wrap gap-4 text-sm text-gray-600 mb-2">
+              <span><i class="fas fa-calendar mr-1"></i>${escapeHtml(tgl)}</span>
+              <span><i class="fas fa-globe mr-1"></i>${escapeHtml(host)}</span>
+              <span><i class="fab fa-youtube mr-1"></i>${escapeHtml(channel)}</span>
+              <span><i class="fas fa-user mr-1"></i>${escapeHtml(author)}</span>
+              ${metaRight}
+            </div>
+            <div class="text-xs text-gray-500">Status: ${escapeHtml(d.processing_status || '-')}</div>
+          </div>
+
+          <div class="bg-white border rounded-lg p-4">
+            <div class="text-xs text-gray-500 mb-1">Komentar Asli:</div>
+            <p class="text-gray-900 whitespace-pre-wrap">${escapeHtml(comment)}</p>
+            ${cleanedBlock}
+          </div>
+
+          <div class="flex space-x-3 pt-4 border-t">
+            <button class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+              <i class="fas fa-brain mr-2"></i>Analisis Sentimen
+            </button>
+            ${linkBtn}
+          </div>
+        </div>
+      `;
+
+
+      $('#modalTitle').text('Detail Komentar');
+      $('#modalContent').html(modalHtml);
+      $('#dynamicModal').removeClass('hidden').addClass('flex');
+      return;
+    }
+    // ... (bagian youtube tetap seperti sebelumnya)
+  } catch (e) {
+    console.error(e);
+    alert('Gagal memuat detail item.');
+  }
+}
+
+//DELETE ITEM
+async function deleteItem(id) {
+  if (!confirm('Hapus item ini?')) return;
+
+  const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  if (!token) {
+    alert('CSRF token tidak ditemukan');
+    return;
+  }
+
+  const isYoutube = (window.currentCategory === 'youtube');
+  const urlTpl = isYoutube
+    ? "{{ route('scraping.youtube.destroy', ['id' => '__ID__']) }}"
+    : "{{ route('scraping.destroy', ['id' => '__ID__']) }}";
+  const url = urlTpl.replace('__ID__', encodeURIComponent(id));
+
+  // 🔍 DEBUG: Log URL yang digunakan
+  console.log('DELETE URL:', url);
+  console.log('Category:', window.currentCategory);
+  console.log('ID:', id);
+
+  try {
+    const res = await fetch(url, {
+      method: 'DELETE',
+      credentials: 'same-origin',
+      headers: {
+        'X-CSRF-TOKEN': token,
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+
+    // 🔍 DEBUG: Log response
+    console.log('Response status:', res.status);
+    console.log('Response OK:', res.ok);
+
+    // Ambil text dulu untuk debugging
+    const textResponse = await res.text();
+    console.log('Response body:', textResponse);
+
+    // Coba parse JSON
+    let json = null;
+    if (textResponse) {
+      try {
+        json = JSON.parse(textResponse);
+        console.log('Parsed JSON:', json);
+      } catch (e) {
+        console.error('Gagal parse JSON:', e);
+        console.log('Raw response:', textResponse.substring(0, 200));
+      }
+    }
+
+    // Cek apakah berhasil
+    if (res.ok && (json?.success === true || json === null)) {
+      console.log('✅ Delete berhasil');
+      await loadResults(window.currentPage || 1);
+      return;
+    }
+
+    // Kalau HTTP error
+    const errorMsg = json?.message || textResponse.substring(0, 100) || `Error HTTP ${res.status}`;
+    console.error('❌ Delete gagal:', errorMsg);
+    alert('Gagal menghapus: ' + errorMsg);
+
+  } catch (e) {
+    console.error('❌ Catch error:', e);
+    console.error('Error name:', e.name);
+    console.error('Error message:', e.message);
+    alert('Terjadi kesalahan koneksi saat menghapus: ' + e.message);
+  }
+}
+
+
+
+async function deleteYoutubeItem(id) {
+  if (!confirm('Hapus komentar YouTube ini?')) return;
+  const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+  const url   = "{{ route('scraping.youtube.destroy', ['id' => '__ID__']) }}"
+                  .replace('__ID__', encodeURIComponent(id));
+
+  try {
+    const res = await fetch(url, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' }});
+    if (!res.ok) { alert('Gagal menghapus.'); return; }
+    const json = await res.json();
+    if (json.success) loadResults(window.currentPage || 1);
+  } catch (e) {
+    console.error(e); alert('Terjadi kesalahan saat menghapus.');
+  }
 }
 
 // Delete Item Function
-function deleteItem(id) {
-    const itemType = currentCategory === 'news' ? 'berita' : 'komentar';
-    if (confirm(`Hapus ${itemType} ini?`)) {
-        alert(`${itemType.charAt(0).toUpperCase() + itemType.slice(1)} berhasil dihapus!`);
+// function deleteItem(id) {
+//     const itemType = window.currentCategory === 'news' ? 'berita' : 'komentar';
+//     if (confirm(`Hapus ${itemType} ini?`)) {
+//         alert(`${itemType.charAt(0).toUpperCase() + itemType.slice(1)} berhasil dihapus!`);
+//     }
+// }
+// Bulk delete (news/youtube)
+$(document).on('click', '#deleteSelected', async function () {
+  const ids = $('input[name="selected_items[]"]:checked')
+    .map(function(){ return parseInt($(this).val(), 10); })
+    .get()
+    .filter(Number.isInteger);
+
+  if (ids.length === 0) { 
+    alert('Pilih minimal satu item yang akan dihapus.'); 
+    return; 
+  }
+  
+  if (!confirm(`Hapus ${ids.length} item terpilih?`)) return;
+
+  const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+  const bulkUrl = (window.currentCategory === 'youtube')
+    ? "{{ route('scraping.youtube.bulkDestroy') }}"
+    : "{{ route('scraping.bulkDestroy') }}";
+
+  try {
+    const res = await fetch(bulkUrl, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': token,
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ ids })
+    });
+
+    let json = null;
+    const contentType = res.headers.get('content-type');
+    
+    if (contentType && contentType.includes('application/json')) {
+      try {
+        json = await res.json();
+      } catch (e) {
+        console.error('Gagal parse JSON:', e);
+      }
     }
-}
+
+    if (res.ok) {
+      await loadResults(window.currentPage || 1);
+      // alert(`${ids.length} item berhasil dihapus`);
+      return;
+    }
+
+    const errorMsg = json?.message || `Error HTTP ${res.status}`;
+    alert('Gagal menghapus: ' + errorMsg);
+
+  } catch (e) {
+    console.error('Error bulk delete:', e);
+    alert('Terjadi kesalahan koneksi saat menghapus');
+  }
+});
+
 
 // Close Modal Function
 function closeDynamicModal() {

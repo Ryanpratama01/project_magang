@@ -56,6 +56,30 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/analisis-sentimen', [SentimentController::class, 'index'])->name('sentiment');
     // Route untuk menerima analisis teks
     Route::post('/analyze-sentiment', [SentimentController::class, 'analyze'])->name('analyze.sentiment');
+    
+    Route::post('/analyze/batch', [SentimentController::class, 'analyzeBatch'])
+     ->name('analyze.sentiment.batch');
+    
+    Route::get('/analisis-sentimen/data', [SentimentController::class, 'getSentiments'])->name('sentiment.data');
+
+    // 🔥 Routes BARU untuk YouTube Sentiment
+    Route::post('/analyze-sentiment-youtube', [SentimentController::class, 'analyzeBatchYoutube'])->name('analyze.sentiment.youtube');
+    Route::get('/sentiment/youtube/data', [SentimentController::class, 'getYoutubeSentiments'])->name('sentiment.youtube.data');
+
+    // Detail by id (jika tabel punya kolom id)
+    Route::get('/sentiment/{id}', [SentimentController::class, 'showSentiment'])->name('sentiment.show');
+
+    // Fallback detail by text/hash (kalau id tidak ada)
+    Route::post('/sentiment/lookup', [SentimentController::class, 'lookupSentiment'])->name('sentiment.lookup');
+
+    // ===== Tambahan: Export CSV & Hapus baris =====
+    Route::get('/analisis-sentimen/export', [SentimentController::class, 'export'])->name('sentiment.export');
+    Route::delete('/sentiment/{id}', [SentimentController::class, 'destroy'])->name('sentiment.destroy');
+
+    Route::get('/sentiment/{id}', [\App\Http\Controllers\SentimentController::class,'showSentiment'])
+     ->name('sentiment.show');
+
+    // ==============================================
 
     // Route::get('/news-distribution', [SentimentController::class, 'index']);
     

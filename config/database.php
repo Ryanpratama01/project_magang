@@ -112,6 +112,26 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
+        'scrapingdb' => [
+            'driver' => 'mysql',
+            'url' => env('SCRAPING_DB_URL'),
+            'host' => env('SCRAPING_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('SCRAPING_DB_PORT', env('DB_PORT', '3306')),
+            'database' => env('SCRAPING_DB_DATABASE', 'scrapingdb'),
+            'username' => env('SCRAPING_DB_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('SCRAPING_DB_PASSWORD', env('DB_PASSWORD', '')),
+            'unix_socket' => env('SCRAPING_DB_SOCKET', ''),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
     ],
 
     /*

@@ -78,30 +78,39 @@
                 </div>
             </div>
             
-            <form id="textAnalysisForm" class="space-y-4 flex flex-col h-full">
-                @csrf
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Teks untuk Dianalisis</label>
-                    <textarea 
-                        id="analysisText"
-                        name="text" 
-                        rows="8" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                        placeholder="Masukkan teks berita atau kalimat yang ingin dianalisis sentimennya..."></textarea>
-                    <div class="mt-2 text-sm text-gray-500">
-                        <span id="charCount">0</span> karakter | Min. 10 karakter
-                    </div>
-                </div>
+            <form id="textAnalysisForm" method="POST" action="{{ route('analyze.sentiment') }}">
+    @csrf
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Teks untuk Dianalisis</label>
+        <textarea 
+            id="analysisText"
+            name="text" 
+            rows="8" 
+            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+            placeholder="Masukkan teks berita atau kalimat yang ingin dianalisis sentimennya..."></textarea>
+        <div class="mt-2 text-sm text-gray-500">
+            <span id="charCount">0</span> karakter | Min. 10 karakter
+        </div>
+    </div>
+
+    <!-- Button -->
+    <div class="mt-auto">
+        <button type="submit" id="startLinkScraping" class="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium">
+            <i class="fas fa-brain mr-2"></i>Analisis Sekarang
+        </button>
+    </div>
+</form>
+
 
                 <!-- Button -->
                 <div class="mt-auto">
                     <button type="submit" id="startLinkScraping" class="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium">
-                        <i class="fas fa-brain mr-2"></i>Analisis Sekarang
+                        <i class="fas fa-brain mr-2"></i>Analisis button 1
                     </button>
                 </div>
             </form>
         </div>
-        
+
         <!-- Batch Analysis -->
         <div id="batchCard" class="bg-white rounded-2xl p-6 card-shadow h-full flex flex-col">
             <div class="flex items-center space-x-3 mb-6">
@@ -182,15 +191,56 @@
             </form>
         </div>
     </div>
+
+    <!-- Hasil Sentimen dari Database -->
+<div class="bg-white rounded-2xl p-6 card-shadow mt-6">
+    <h3 class="text-xl font-bold text-gray-800 mb-6">Hasil Analisis Sentimen dari Database</h3>
+    
+    @if($newsSentiments->isNotEmpty())
+        <table class="w-full table-auto">
+            <thead>
+                <tr class="border-b border-gray-200">
+                    <th class="py-2 px-4 text-left text-gray-700">Article ID</th>
+                    <th class="py-2 px-4 text-left text-gray-700">Quote Text</th>
+                    <th class="py-2 px-4 text-left text-gray-700">Sentiment</th>
+                    <th class="py-2 px-4 text-left text-gray-700">Positive Score</th>
+                    <th class="py-2 px-4 text-left text-gray-700">Negative Score</th>
+                    <th class="py-2 px-4 text-left text-gray-700">Neutral Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($newsSentiments as $sentiment)
+                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td class="py-4 px-4">{{ $sentiment->article_idx }}</td>
+                        <td class="py-4 px-4">{{ Str::limit($sentiment->quote_text, 50) }}</td>
+                        <td class="py-4 px-4">
+                            <span class="px-3 py-1 
+                                @if($sentiment->label == 'positive') bg-green-100 text-green-600 
+                                @elseif($sentiment->label == 'negative') bg-red-100 text-red-600
+                                @else bg-yellow-100 text-yellow-600
+                                @endif
+                                rounded-full">
+                                {{ ucfirst($sentiment->label) }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-4">{{ $sentiment->score_positive }}</td>
+                        <td class="py-4 px-4">{{ $sentiment->score_negative }}</td>
+                        <td class="py-4 px-4">{{ $sentiment->score_neutral }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @else
+        <p class="text-gray-600">Belum ada hasil analisis dari database.</p>
+    @endif
+</div>
+
     
     <!-- Analysis Result -->
-    <div id="analysisResult" class="bg-white rounded-2xl p-6 card-shadow hidden">
+    <id="starLinkScraping" class="bg-white rounded-2xl p-6 card-shadow hidden">
         <h3 class="text-xl font-bold text-gray-800 mb-6">Hasil Analisis</h3>
         <div id="resultContent">
-            <!-- Result will be populated here -->
-        </div>
-    </div>
-    
+
     <!-- Batch Progress -->
     <div id="batchProgress" class="bg-white rounded-2xl p-6 card-shadow hidden">
         <div class="flex items-center justify-between mb-4">
@@ -378,7 +428,48 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
-    let isAnalyzing = false;
+    // Menghindari page refresh saat form disubmit
+    $('#textAnalysisForm').on('submit', function (e) {
+        e.preventDefault(); // Mencegah halaman refresh
+
+        // Ambil teks dari form
+        const text = $('#analysisText').val().trim();
+        if (text.length < 10) {
+            alert('Masukkan minimal 10 karakter untuk dianalisis!');
+            return;
+        }
+
+        // Kirim data ke server menggunakan AJAX
+        $.ajax({
+            url: "{{ route('analyze.sentiment') }}", // Pastikan URL mengarah ke route yang benar
+            type: "POST",
+            data: {
+                text: text,
+                _token: $('meta[name="csrf-token"]').attr('content') // Jangan lupa CSRF Token
+            },
+            success: function (response) {
+                if (response.success) {
+                    // Tampilkan hasil analisis
+                    const result = response.data;
+                    const sentiment = result.sentiment;
+                    const confidence = result.confidence;
+
+                    // Tampilkan hasil di UI (misal di bawah form)
+                    $('#analysisResult').removeClass('hidden');
+                    $('#resultContent').html(`
+                        <h4>Sentimen: ${sentiment}</h4>
+                        <p>Confidence: ${confidence}%</p>
+                        <p>Keywords: ${result.keywords.join(', ')}</p>
+                    `);
+                }
+            },
+            error: function (error) {
+                alert("Terjadi kesalahan dalam analisis.");
+            }
+        });
+    });
+});
+
 
     // ====== HANDLER PILIH KATEGORI (BARU) ======
     function setType(type) {
@@ -562,6 +653,14 @@ $(document).ready(function() {
         
         $('#resultContent').html(html);
         $('#analysisResult').removeClass('hidden');
+        <!-- Hasil Sentimen dari Database -->
+<div id="analysisResult" class="bg-white rounded-2xl p-6 card-shadow hidden">
+    <h3 class="text-xl font-bold text-gray-800 mb-6">Hasil Analisis</h3>
+    <div id="resultContent">
+        <!-- Hasil analisis akan tampil di sini -->
+    </div>
+</div>
+
     }
     
     // Start Batch Analysis

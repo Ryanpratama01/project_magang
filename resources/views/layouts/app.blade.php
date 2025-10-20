@@ -14,7 +14,7 @@
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <!-- Custom CSS -->
     <style>
         .gradient-bg {
@@ -43,6 +43,7 @@
         }
     </style>
 </head>
+
 <body class="h-full font-sans overflow-hidden">
     <div class="flex h-full">
         <!-- Sidebar -->
@@ -112,9 +113,12 @@
                                 <i class="fas fa-bell text-gray-600"></i>
                             </button>
                         </div>
-                        <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <button 
+                            onclick="loadProfileData()" 
+                            class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center hover:shadow-lg hover:scale-110 transition-all cursor-pointer"
+                            title="Lihat Profil">
                             <span class="text-white font-medium">{{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}</span>
-                        </div>
+                        </button>
                     </div>
                 </div>
             </header>
@@ -146,7 +150,12 @@
             });
         });
     </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
     
+    <!-- Profile Modal -->
+    @include('partials.profile-modal')
+
     @stack('scripts')
 </body>
 </html>

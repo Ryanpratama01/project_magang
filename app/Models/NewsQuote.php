@@ -1,10 +1,33 @@
-<!-- <?php
+<?php
 
-// namespace App\Models;
+namespace App\Models;
 
-// use Illuminate\Database\Eloquent\Model;
-// use Illuminate\Database\Eloquent\Factories\HasFactory;
-// use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Carbon\Carbon;
+class NewsQuote extends Model
+{
+    protected $table = 'news_quotes';
+
+    protected $fillable = [
+        'original_text',
+        'cleaned_text',
+        'speaker',
+        'news_url',
+        'news_source',
+        'context',
+        'scraped_at',
+        'processing_status',
+        'published_at',   // 👈 tambahkan ini
+    ];
+
+    protected $guarded = [];
+    
+    protected $date = [
+        'scraped_at',
+        'published_at',   // 👈 supaya otomatis di-cast ke Carbon
+    ];
+}
 
 // class News extends Model
 // {
@@ -71,4 +94,4 @@
 //     {
 //         return \Str::limit(strip_tags($this->content), 100);
 //     }
-// } -->
+// }

@@ -1,45 +1,62 @@
 <!DOCTYPE html>
 <html lang="id" class="h-full bg-gray-50">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Sistem Analisis Sentimen')</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    
+
+    <!-- Font Awesome 5.15.4 (Free) via jsDelivr -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+    <!-- (Opsional) Bootstrap JS bundle — uncomment jika memang diperlukan -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
     <!-- Custom CSS -->
     <style>
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
+
         .card-shadow {
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
+
         .hover-scale {
             transition: transform 0.2s;
         }
+
         .hover-scale:hover {
             transform: scale(1.02);
         }
+
         .sidebar-active {
             background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
             color: white;
             box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
         }
+
         .animate-fade-in {
             animation: fadeIn 0.5s ease-in-out;
         }
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
@@ -59,37 +76,32 @@
                         <p class="text-sm text-gray-600">Analisis Sentimen</p>
                     </div>
                 </div>
-                
+
                 <!-- Navigation Menu -->
                 <nav class="space-y-2">
-                    <a href="{{ route('dashboard') }}" 
-                       class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-blue-50 {{ request()->routeIs('dashboard') ? 'sidebar-active text-white' : 'text-gray-700 hover:text-blue-600' }}">
+                    <a href="{{ route('dashboard') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-blue-50 {{ request()->routeIs('dashboard') ? 'sidebar-active text-white' : 'text-gray-700 hover:text-blue-600' }}">
                         <i class="fas fa-tachometer-alt w-5"></i>
                         <span class="font-medium">Dashboard</span>
                     </a>
-                    
-                    <a href="{{ route('scraping') }}" 
-                       class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-blue-50 {{ request()->routeIs('scraping') ? 'sidebar-active text-white' : 'text-gray-700 hover:text-blue-600' }}">
+
+                    <a href="{{ route('scraping') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-blue-50 {{ request()->routeIs('scraping') ? 'sidebar-active text-white' : 'text-gray-700 hover:text-blue-600' }}">
                         <i class="fas fa-spider w-5"></i>
                         <span class="font-medium">Scraping</span>
                     </a>
-                    
-                    <a href="{{ route('sentiment') }}" 
-                       class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-blue-50 {{ request()->routeIs('sentiment') ? 'sidebar-active text-white' : 'text-gray-700 hover:text-blue-600' }}">
+
+                    <a href="{{ route('sentiment') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-blue-50 {{ request()->routeIs('sentiment') ? 'sidebar-active text-white' : 'text-gray-700 hover:text-blue-600' }}">
                         <i class="fas fa-brain w-5"></i>
                         <span class="font-medium">Analisis Sentimen</span>
                     </a>
-                    
-                    <a href="{{ route('report') }}" 
-                       class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-blue-50 {{ request()->routeIs('report') ? 'sidebar-active text-white' : 'text-gray-700 hover:text-blue-600' }}">
+
+                    <a href="{{ route('report') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-blue-50 {{ request()->routeIs('report') ? 'sidebar-active text-white' : 'text-gray-700 hover:text-blue-600' }}">
                         <i class="fas fa-file-alt w-5"></i>
                         <span class="font-medium">Cetak Laporan</span>
                     </a>
-                    
+
                     <form method="POST" action="{{ route('logout') }}" class="mt-8">
                         @csrf
-                        <button type="submit" 
-                                class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 text-red-600 hover:bg-red-50 w-full text-left">
+                        <button type="submit" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 text-red-600 hover:bg-red-50 w-full text-left">
                             <i class="fas fa-sign-out-alt w-5"></i>
                             <span class="font-medium">Logout</span>
                         </button>
@@ -97,7 +109,7 @@
                 </nav>
             </div>
         </div>
-        
+
         <!-- Main Content -->
         <div class="flex-1 flex flex-col overflow-hidden">
             <!-- Header -->
@@ -113,36 +125,51 @@
                                 <i class="fas fa-bell text-gray-600"></i>
                             </button>
                         </div>
-                        <button 
-                            onclick="loadProfileData()" 
-                            class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center hover:shadow-lg hover:scale-110 transition-all cursor-pointer"
-                            title="Lihat Profil">
+                        <button onclick="loadProfileData()" class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center hover:shadow-lg hover:scale-110 transition-all cursor-pointer" title="Lihat Profil">
                             <span class="text-white font-medium">{{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}</span>
                         </button>
                     </div>
                 </div>
             </header>
-            
+
+            @if (session('status'))
+            <div id="flash-status" class="mb-4 rounded-lg bg-emerald-50 text-emerald-700 px-4 py-2 border border-emerald-200">
+                {{ session('status') }}
+            </div>
+            <script>
+                // Auto-hide setelah 2 detik
+                setTimeout(() => {
+                    const el = document.getElementById('flash-status');
+                    if (!el) return;
+                    el.style.transition = 'opacity .5s ease';
+                    el.style.opacity = '0';
+                    setTimeout(() => el.remove(), 500);
+                }, 2000);
+            </script>
+            @endif
+
             <!-- Page Content -->
             <main class="flex-1 p-8 animate-fade-in overflow-y-auto">
                 @yield('content')
             </main>
         </div>
     </div>
-    
+
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
+
     <!-- Custom JS -->
     <script>
-        // CSRF token setup for AJAX
+        // CSRF untuk AJAX
         $.ajaxSetup({
             headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
             }
         });
-        
-        // Animation on load
+
+        // Animasi pada elemen yang pakai .animate-fade-in
         document.addEventListener('DOMContentLoaded', function() {
             const elements = document.querySelectorAll('.animate-fade-in');
             elements.forEach((el, index) => {
@@ -151,11 +178,10 @@
         });
     </script>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-    
     <!-- Profile Modal -->
     @include('partials.profile-modal')
 
     @stack('scripts')
 </body>
+
 </html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-gray-50">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo $__env->yieldContent('title', 'Sistem Analisis Sentimen'); ?></title>
+    <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
+
+    <!-- Font Awesome 5.15.4 (Free) via jsDelivr -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- (Opsional) Bootstrap JS bundle — uncomment jika memang diperlukan -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom CSS -->
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .card-shadow {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .hover-scale {
+            transition: transform 0.2s;
+        }
+
+        .hover-scale:hover {
+            transform: scale(1.02);
+        }
+
+        .sidebar-active {
+            background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body class="h-full font-sans overflow-hidden">
+    <div class="flex h-full">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white shadow-xl border-r border-gray-200">
+            <div class="p-6">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3 mb-8">
+                    <div class="w-10 h-10 flex items-center justify-center">
+                        <img src="<?php echo e(asset('images/logoDPU.png')); ?>" alt="Logo DPU" class="h-full w-full object-contain">
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">Sistem</h1>
+                        <p class="text-sm text-gray-600">Analisis Sentimen</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Menu -->
+                <nav class="space-y-2">
+                    <a href="<?php echo e(route('dashboard')); ?>" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-blue-50 <?php echo e(request()->routeIs('dashboard') ? 'sidebar-active text-white' : 'text-gray-700 hover:text-blue-600'); ?>">
+                        <i class="fas fa-tachometer-alt w-5"></i>
+                        <span class="font-medium">Dashboard</span>
+                    </a>
+
+                    <a href="<?php echo e(route('scraping')); ?>" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-blue-50 <?php echo e(request()->routeIs('scraping') ? 'sidebar-active text-white' : 'text-gray-700 hover:text-blue-600'); ?>">
+                        <i class="fas fa-spider w-5"></i>
+                        <span class="font-medium">Scraping</span>
+                    </a>
+
+                    <a href="<?php echo e(route('sentiment')); ?>" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-blue-50 <?php echo e(request()->routeIs('sentiment') ? 'sidebar-active text-white' : 'text-gray-700 hover:text-blue-600'); ?>">
+                        <i class="fas fa-brain w-5"></i>
+                        <span class="font-medium">Analisis Sentimen</span>
+                    </a>
+
+                    <a href="<?php echo e(route('report')); ?>" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-blue-50 <?php echo e(request()->routeIs('report') ? 'sidebar-active text-white' : 'text-gray-700 hover:text-blue-600'); ?>">
+                        <i class="fas fa-file-alt w-5"></i>
+                        <span class="font-medium">Cetak Laporan</span>
+                    </a>
+
+                    <form method="POST" action="<?php echo e(route('logout')); ?>" class="mt-8">
+                        <?php echo csrf_field(); ?>
+                        <button type="submit" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 text-red-600 hover:bg-red-50 w-full text-left">
+                            <i class="fas fa-sign-out-alt w-5"></i>
+                            <span class="font-medium">Logout</span>
+                        </button>
+                    </form>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b border-gray-200 px-8 py-4 flex-shrink-0">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800"><?php echo $__env->yieldContent('page-title'); ?></h2>
+                        <p class="text-gray-600"><?php echo $__env->yieldContent('page-description'); ?></p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <button class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors">
+                                <i class="fas fa-bell text-gray-600"></i>
+                            </button>
+                        </div>
+                        <button onclick="loadProfileData()" class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center hover:shadow-lg hover:scale-110 transition-all cursor-pointer" title="Lihat Profil">
+                            <span class="text-white font-medium"><?php echo e(strtoupper(substr(auth()->user()->name ?? 'U', 0, 1))); ?></span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <?php if(session('status')): ?>
+            <div id="flash-status" class="mb-4 rounded-lg bg-emerald-50 text-emerald-700 px-4 py-2 border border-emerald-200">
+                <?php echo e(session('status')); ?>
+
+            </div>
+            <script>
+                // Auto-hide setelah 2 detik
+                setTimeout(() => {
+                    const el = document.getElementById('flash-status');
+                    if (!el) return;
+                    el.style.transition = 'opacity .5s ease';
+                    el.style.opacity = '0';
+                    setTimeout(() => el.remove(), 500);
+                }, 2000);
+            </script>
+            <?php endif; ?>
+
+            <!-- Page Content -->
+            <main class="flex-1 p-8 animate-fade-in overflow-y-auto">
+                <?php echo $__env->yieldContent('content'); ?>
+            </main>
+        </div>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Custom JS -->
+    <script>
+        // CSRF untuk AJAX
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        });
+
+        // Animasi pada elemen yang pakai .animate-fade-in
+        document.addEventListener('DOMContentLoaded', function() {
+            const elements = document.querySelectorAll('.animate-fade-in');
+            elements.forEach((el, index) => {
+                el.style.animationDelay = `${index * 0.1}s`;
+            });
+        });
+    </script>
+
+    <!-- Profile Modal -->
+    <?php echo $__env->make('partials.profile-modal', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
+    <?php echo $__env->yieldPushContent('scripts'); ?>
+</body>
+
+</html><?php /**PATH C:\xampp\htdocs\project_magang\resources\views/layouts/app.blade.php ENDPATH**/ ?>

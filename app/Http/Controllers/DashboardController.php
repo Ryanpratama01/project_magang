@@ -18,12 +18,22 @@ class DashboardController extends Controller
         $stats         = $this->buildStats();
         $monthlyTrend  = $this->buildMonthlyTrend($year);
         $youtubeVideos = $this->getYoutubeVideos();
-        $newsData      = $this->getNewsList($q); // tabel berita (dengan search kalau ada $q)
+        $newsData      = $this->getNewsList($q, 10); // tabel berita (dengan search kalau ada $q)
+        $totalAll  = $this->countAllNews();
 
-        return view('dashboard', compact('stats', 'monthlyTrend', 'youtubeVideos', 'newsData'))
-            ->with('q', $q)
-            ->with('source', $src);
+        return view('dashboard', [
+            'stats'         => $stats,
+            'monthlyTrend'  => $monthlyTrend,
+            'youtubeVideos' => $youtubeVideos,
+            'newsData'      => $newsData,
+            'totalAll'      => $totalAll, // ← penting
+            'q'             => $q,
+            'source'        => $src,
+        ]);
     }
+
+
+
 
     // ===== AJAX data (tanpa reload halaman) =====
     public function data(Request $request)
@@ -31,49 +41,24 @@ class DashboardController extends Controller
         $year = (int) ($request->input('year') ?: $this->availableYears()[0] ?? now()->year);
         $q    = trim((string) $request->input('q', ''));
         $src  = in_array($request->input('source'), ['news', 'youtube']) ? $request->input('source') : 'news';
-        $coll = 'utf8mb4_unicode_ci';
 
-        // ===== News list (tabel) =====
-        if ($q !== '') {
-            $like = "%{$q}%";
+        // Mode tampil
+        $show  = (string) $request->input('show', ''); // '', 'all', 'top10'
+        $limit = match ($show) {
+            'all'   => 200,  // bisa dinaikkan sesuai kebutuhan
+            'top10' => 10,
+            default => 50,
+        };
 
-            if (mb_strlen($q) < 3) {
-                // fallback LIKE untuk query pendek
-                $newsData = DB::table('news_articles')
-                    ->select('id', 'url', 'title', 'summary_clean', 'published_at', 'created_at')
-                    ->where(function ($w) use ($like, $coll) {
-                        $w->whereRaw("title COLLATE {$coll} LIKE ?", [$like])
-                            ->orWhereRaw("summary_clean COLLATE {$coll} LIKE ?", [$like]);
-                    })
-                    ->orderByRaw('COALESCE(published_at, created_at) DESC')
-                    ->limit(50)->get();
-            } else {
-                $newsData = DB::table('news_articles')
-                    ->selectRaw("
-                        id, url, title, summary_clean, published_at, created_at,
-                        (MATCH(title) AGAINST(? IN NATURAL LANGUAGE MODE) * 2 +
-                         MATCH(summary_clean) AGAINST(? IN NATURAL LANGUAGE MODE)) AS score,
-                        (title COLLATE {$coll} LIKE ?) AS title_exact
-                    ", [$q, $q, $like])
-                    ->whereRaw("MATCH(title, summary_clean) AGAINST(? IN NATURAL LANGUAGE MODE)", [$q])
-                    ->orderByDesc('title_exact')
-                    ->orderByDesc('score')
-                    ->orderByRaw('COALESCE(published_at, created_at) DESC')
-                    ->limit(50)->get();
-            }
-        } else {
-            $newsData = DB::table('news_articles')
-                ->select('id', 'url', 'title', 'summary_clean', 'published_at', 'created_at')
-                ->orderByRaw('COALESCE(published_at, created_at) DESC')
-                ->limit(50)->get();
-        }
+        $newsData   = $this->getNewsList($q, $limit);
+        $totalAll   = $this->countAllNews();         // total keseluruhan tabel (tanpa filter)
+        $returned   = $newsData->count();
 
-        $newsTableHtml = view('partials._news_table', [
+        $newsTableHtml = view('partials._news_table_dashboard', [
             'newsData' => $newsData,
             'q'        => $q,
         ])->render();
 
-        // Paket tambahan agar kartu & chart ikut segar tanpa reload penuh
         $stats        = $this->buildStats();
         $monthlyTrend = $this->buildMonthlyTrend($year);
 
@@ -85,8 +70,16 @@ class DashboardController extends Controller
             'summary'       => $stats,
             'trend'         => $monthlyTrend,
             'pie'           => $stats['distribution'] ?? null,
+
+            // ⬇️ tambahan untuk counter
+            'total_all'     => (int) $totalAll,
+            'returned'      => (int) $returned,
+            'mode'          => $show === 'all' ? 'all' : ($show === 'top10' ? 'top10' : 'default'),
         ]);
     }
+
+
+
 
     // ================== Helpers ==================
 
@@ -295,22 +288,25 @@ class DashboardController extends Controller
         return $out;
     }
 
-    /** Daftar berita 50 item, dengan pencarian judul/ringkasan jika $q != '' */
-    private function getNewsList(string $q)
+    private function countAllNews(): int
+    {
+        return (int) DB::table('news_articles')->count();
+    }
+
+
+    private function getNewsList(string $q, int $limit = 50)
     {
         if ($q === '') {
             return DB::table('news_articles')
                 ->select('id', 'url', 'title', 'summary_clean', 'published_at', 'created_at')
                 ->orderByRaw('COALESCE(published_at, created_at) DESC')
-                ->limit(50)->get();
+                ->limit($limit)->get();
         }
 
-        // FULLTEXT + like boost judul
         $coll = 'utf8mb4_unicode_ci';
         $like = "%{$q}%";
 
         if (mb_strlen($q) < 3) {
-            // fallback LIKE untuk query pendek
             return DB::table('news_articles')
                 ->select('id', 'url', 'title', 'summary_clean', 'published_at', 'created_at')
                 ->where(function ($w) use ($like, $coll) {
@@ -318,7 +314,7 @@ class DashboardController extends Controller
                         ->orWhereRaw("summary_clean COLLATE {$coll} LIKE ?", [$like]);
                 })
                 ->orderByRaw('COALESCE(published_at, created_at) DESC')
-                ->limit(50)->get();
+                ->limit($limit)->get();
         }
 
         return DB::table('news_articles')
@@ -332,6 +328,6 @@ class DashboardController extends Controller
             ->orderByDesc('title_exact')
             ->orderByDesc('score')
             ->orderByRaw('COALESCE(published_at, created_at) DESC')
-            ->limit(50)->get();
+            ->limit($limit)->get();
     }
 }

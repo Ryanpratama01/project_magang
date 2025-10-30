@@ -9,6 +9,7 @@ use App\Http\Controllers\SentimentController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ProfileController;
 
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -59,6 +60,10 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/scraping/progress', [ScrapingController::class, 'checkProgress'])
     ->name('scraping.progress');
+
+    // Tambahkan routes export
+    Route::get('/scraping/export/excel', [ScrapingController::class, 'exportExcel'])->name('scraping.export.excel');
+    Route::get('/scraping/export/csv', [ScrapingController::class, 'exportCsv'])->name('scraping.export.csv');
     
     /** YOUTUBE */
     // kirim link youtube

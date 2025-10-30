@@ -257,6 +257,32 @@ https://youtu.be/SHORT_URL"></textarea>
                     <!-- <p class="text-gray-600 text-sm" id="resultsDescription">Daftar data yang berhasil diambil</p> -->
                 </div>
                 <div class="flex space-x-3">
+                    <!-- Export Dropdown - Letakkan di bagian button actions -->
+                    <div class="relative" id="exportDropdown">
+                        <button id="exportButton" class="px-4 py-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors flex items-center">
+                            <i class="fas fa-download mr-2"></i>Export
+                            <i class="fas fa-chevron-down ml-2 text-xs"></i>
+                        </button>
+                        <div id="exportMenu" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                            <button id="exportExcelAll" class="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center">
+                                <i class="fas fa-file-excel mr-2 text-green-600"></i>
+                                Export Semua (Excel)
+                            </button>
+                            <button id="exportCSVAll" class="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center">
+                                <i class="fas fa-file-csv mr-2 text-blue-600"></i>
+                                Export Semua (CSV)
+                            </button>
+                            <div class="border-t border-gray-200 my-1"></div>
+                            <button id="exportExcelSelected" class="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center text-gray-700">
+                                <i class="fas fa-check-square mr-2 text-green-600"></i>
+                                Export Terpilih (Excel)
+                            </button>
+                            <button id="exportCSVSelected" class="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center text-gray-700">
+                                <i class="fas fa-check-square mr-2 text-blue-600"></i>
+                                Export Terpilih (CSV)
+                            </button>
+                        </div>
+                    </div>
                     <button id="selectAll" class="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                         <i class="fas fa-check-square mr-2"></i>Pilih Semua
                     </button>
@@ -1658,5 +1684,137 @@ $('#stopScraping').off('click').on('click', function() {
         $('#startYoutubeScraping').prop('disabled', false).html('<i class="fas fa-play mr-2"></i>Mulai Scraping');
     }
 });
+
+/// Toggle Export Dropdown
+document.getElementById('exportButton').addEventListener('click', function(e) {
+    e.stopPropagation();
+    document.getElementById('exportMenu').classList.toggle('hidden');
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('exportDropdown');
+    if (!dropdown.contains(e.target)) {
+        document.getElementById('exportMenu').classList.add('hidden');
+    }
+});
+
+// Function untuk get selected IDs
+function getSelectedIds() {
+    const ids = [];
+    document.querySelectorAll('input[name="selected_items[]"]:checked').forEach(checkbox => {
+        const value = parseInt(checkbox.value);
+        if (!isNaN(value)) {
+            ids.push(value);
+        }
+    });
+    return ids;
+}
+
+// Function untuk generate export URL
+function generateExportUrl(baseUrl, category, ids = null) {
+    let url = baseUrl + '?category=' + category;
+    
+    if (ids && ids.length > 0) {
+        url += '&ids=' + encodeURIComponent(JSON.stringify(ids));
+    }
+    
+    return url;
+}
+
+// Export Semua - Excel
+document.getElementById('exportExcelAll').addEventListener('click', function() {
+    const category = window.currentCategory || 'news';
+    const url = generateExportUrl("{{ route('scraping.export.excel') }}", category);
+    window.location.href = url;
+    document.getElementById('exportMenu').classList.add('hidden');
+});
+
+// Export Semua - CSV
+document.getElementById('exportCSVAll').addEventListener('click', function() {
+    const category = window.currentCategory || 'news';
+    const url = generateExportUrl("{{ route('scraping.export.csv') }}", category);
+    window.location.href = url;
+    document.getElementById('exportMenu').classList.add('hidden');
+});
+
+// Export Terpilih - Excel
+document.getElementById('exportExcelSelected').addEventListener('click', function() {
+    const ids = getSelectedIds();
+    
+    if (ids.length === 0) {
+        alert('Pilih minimal satu item untuk di-export!');
+        return;
+    }
+    
+    const category = window.currentCategory || 'news';
+    const itemType = category === 'news' ? 'berita' : 'komentar';
+    
+    if (confirm(`Export ${ids.length} ${itemType} yang dipilih ke Excel?`)) {
+        const url = generateExportUrl("{{ route('scraping.export.excel') }}", category, ids);
+        window.location.href = url;
+        document.getElementById('exportMenu').classList.add('hidden');
+    }
+});
+
+// Export Terpilih - CSV
+document.getElementById('exportCSVSelected').addEventListener('click', function() {
+    const ids = getSelectedIds();
+    
+    if (ids.length === 0) {
+        alert('Pilih minimal satu item untuk di-export!');
+        return;
+    }
+    
+    const category = window.currentCategory || 'news';
+    const itemType = category === 'news' ? 'berita' : 'komentar';
+    
+    if (confirm(`Export ${ids.length} ${itemType} yang dipilih ke CSV?`)) {
+        const url = generateExportUrl("{{ route('scraping.export.csv') }}", category, ids);
+        window.location.href = url;
+        document.getElementById('exportMenu').classList.add('hidden');
+    }
+});
+
+// Update button state based on selection (opsional - untuk visual feedback)
+$(document).on('change', 'input[name="selected_items[]"]', function() {
+    const selectedCount = $('input[name="selected_items[]"]:checked').length;
+    
+    if (selectedCount > 0) {
+        $('#exportExcelSelected').removeClass('text-gray-400').addClass('text-gray-700');
+        $('#exportCSVSelected').removeClass('text-gray-400').addClass('text-gray-700');
+    } else {
+        $('#exportExcelSelected').removeClass('text-gray-700').addClass('text-gray-400');
+        $('#exportCSVSelected').removeClass('text-gray-700').addClass('text-gray-400');
+    }
+});
 </script>
+<style>
+#exportMenu {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+#exportMenu button {
+    transition: all 0.2s ease;
+    text-decoration: none;
+    color: inherit;
+}
+
+#exportMenu button:hover {
+    background-color: #f9fafb;
+}
+
+#exportMenu button:first-child {
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+#exportMenu button:last-child {
+    border-radius: 0 0 0.5rem 0.5rem;
+}
+
+#exportMenu button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+</style>
 @endpush

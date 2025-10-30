@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Cache;
 use Log;
 use App\Models\NewsQuote;
 use Illuminate\Support\Carbon;   
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\NewsScrapingExport;
+use App\Exports\YoutubeScrapingExport;
 
 class ScrapingController extends Controller
 {
@@ -549,4 +552,59 @@ public function youtubeBulkDestroy(Request $request)
         return response()->json($progress);
     }
 
+   /**
+     * Export data scraping ke Excel (News atau YouTube)
+     * Bisa export semua data atau hanya yang dipilih
+     */
+    public function exportExcel(Request $request)
+    {
+        try {
+            // Ambil parameter category dan ids dari request
+            $category = $request->get('category', 'news');
+            $ids = $request->get('ids'); // Array IDs yang dipilih
+            
+            // Parse IDs jika berupa string JSON
+            if (is_string($ids)) {
+                $ids = json_decode($ids, true);
+            }
+            
+            if ($category === 'youtube') {
+                $fileName = 'hasil_scraping_youtube_' . date('Y-m-d_H-i-s') . '.xlsx';
+                return Excel::download(new YoutubeScrapingExport($ids), $fileName);
+            } else {
+                $fileName = 'hasil_scraping_berita_' . date('Y-m-d_H-i-s') . '.xlsx';
+                return Excel::download(new NewsScrapingExport($ids), $fileName);
+            }
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal export Excel: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Export data scraping ke CSV (News atau YouTube)
+     * Bisa export semua data atau hanya yang dipilih
+     */
+    public function exportCsv(Request $request)
+    {
+        try {
+            // Ambil parameter category dan ids dari request
+            $category = $request->get('category', 'news');
+            $ids = $request->get('ids'); // Array IDs yang dipilih
+            
+            // Parse IDs jika berupa string JSON
+            if (is_string($ids)) {
+                $ids = json_decode($ids, true);
+            }
+            
+            if ($category === 'youtube') {
+                $fileName = 'hasil_scraping_youtube_' . date('Y-m-d_H-i-s') . '.csv';
+                return Excel::download(new YoutubeScrapingExport($ids), $fileName, \Maatwebsite\Excel\Excel::CSV);
+            } else {
+                $fileName = 'hasil_scraping_berita_' . date('Y-m-d_H-i-s') . '.csv';
+                return Excel::download(new NewsScrapingExport($ids), $fileName, \Maatwebsite\Excel\Excel::CSV);
+            }
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal export CSV: ' . $e->getMessage());
+        }
+    }
 }

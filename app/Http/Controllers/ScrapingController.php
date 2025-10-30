@@ -6,6 +6,7 @@ use App\Jobs\ScrapeNewsLinksJob;
 use App\Jobs\ScrapeYoutubeLinksJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Log;
 use App\Models\NewsQuote;
 use Illuminate\Support\Carbon;   
@@ -23,28 +24,66 @@ class ScrapingController extends Controller
     //     return back()->with('ok','Scraping berita dimulai ('.count($urls).' URL).');
     // }
     public function scrapeNewsByLinks(Request $r) {
-    // Terima dua-duanya: 'links' atau 'newsLinks'
-    Log::info('HIT scrapeNewsByLinks', ['all'=>$r->all()]);
-    // alias: terima 'links' ATAU nama lama 'newsLinks'
-    $r->merge(['links' => $r->input('links') ?? $r->input('newsLinks')]);
+        // Terima dua-duanya: 'links' atau 'newsLinks'
+        Log::info('HIT scrapeNewsByLinks', ['all'=>$r->all()]);
+        
+        // alias: terima 'links' ATAU nama lama 'newsLinks'
+        $r->merge(['links' => $r->input('links') ?? $r->input('newsLinks')]);
 
-    $data = $r->validate([
-        'links'      => 'nullable|string|required_without:newsLinks',
-        'newsLinks'  => 'nullable|string|required_without:links',
-    ]);
+        $data = $r->validate([
+            'links'      => 'nullable|string|required_without:newsLinks',
+            'newsLinks'  => 'nullable|string|required_without:links',
+        ]);
 
-    // Ambil salah satu yang ada
-    $raw = $r->input('links') ?? $r->input('newsLinks');
+        // Ambil salah satu yang ada
+        $raw = $r->input('links') ?? $r->input('newsLinks');
 
-    $urls = collect(preg_split('/\r?\n/', trim($raw)))->filter()->unique();
-    Log::info('DISPATCH news', ['count'=>$urls->count()]);
-    
-    foreach ($urls as $url) {
-        ScrapeNewsLinksJob::dispatch((string)$url, auth()->id() ?? 0);
+        $urls = collect(preg_split('/\r?\n/', trim($raw)))->filter()->unique();
+        
+        // ✅ TAMBAHKAN: Generate unique job ID
+        $jobId = uniqid('scrape_news_', true);
+        $total = $urls->count();
+        
+        Log::info('DISPATCH news', [
+            'count' => $total, 
+            'job_id' => $jobId
+        ]);
+        
+        // ✅ TAMBAHKAN: Initialize progress di cache
+        Cache::put("scraping_progress_{$jobId}", [
+            'current' => 0,
+            'total' => $total,
+            'completed' => 0,
+            'failed' => 0,
+            'status' => 'started',
+            'message' => "Memulai scraping {$total} berita...",
+            'details' => []
+        ], now()->addMinutes(10));
+        
+        // ✅ UPDATE: Dispatch jobs dengan job ID dan index
+        foreach ($urls as $index => $url) {
+            ScrapeNewsLinksJob::dispatch(
+                (string)$url, 
+                auth()->id() ?? 0,
+                $jobId,        // Pass job ID
+                $index,        // Pass current index
+                $total         // Pass total URLs
+            );
+        }
+
+        // ✅ TAMBAHKAN: Return JSON jika AJAX request
+        if ($r->expectsJson() || $r->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'job_id' => $jobId,
+                'total' => $total,
+                'message' => "Scraping dimulai untuk {$total} berita"
+            ]);
+        }
+
+        // Redirect biasa jika bukan AJAX
+        return back()->with('ok', "Scraping berita dimulai ({$total} URL).");
     }
-
-    return back()->with('ok','Scraping berita dimulai ('.count($urls).' URL).');
-}
 
     public function startScraping(Request $request)
     {
@@ -487,5 +526,27 @@ public function youtubeBulkDestroy(Request $request)
         ]);
     }
 
+    // app/Http/Controllers/ScrapingController.php
+
+   public function checkProgress(Request $request)
+    {
+        $jobId = $request->input('job_id');
+        
+        if (!$jobId) {
+            return response()->json(['error' => 'Job ID required'], 400);
+        }
+
+        $progress = Cache::get("scraping_progress_{$jobId}", [
+            'current' => 0,
+            'total' => 0,
+            'completed' => 0,
+            'failed' => 0,
+            'status' => 'unknown',
+            'message' => 'Data tidak ditemukan',
+            'details' => []
+        ]);
+
+        return response()->json($progress);
+    }
 
 }

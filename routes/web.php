@@ -57,6 +57,9 @@ Route::middleware(['auth'])->group(function () {
     // hapus banyak kutipan
     Route::post('/scraping/bulk-delete', [ScrapingController::class, 'bulkDestroy'])->name('scraping.bulkDestroy');
 
+    Route::get('/scraping/progress', [ScrapingController::class, 'checkProgress'])
+    ->name('scraping.progress');
+    
     /** YOUTUBE */
     // kirim link youtube
     Route::post('/scraping/youtube/links', [ScrapingController::class,'scrapeYoutubeByLinks'])->name('scrape.youtube.links');

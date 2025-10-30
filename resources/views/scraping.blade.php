@@ -228,7 +228,7 @@ https://youtu.be/SHORT_URL"></textarea>
         </div>
     </div>
     
-    <!-- Scraping Progress
+    <!-- Scraping Progress -->
     <div id="scrapingProgress" class="bg-white rounded-2xl p-6 card-shadow hidden">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-bold text-gray-800">Progress Scraping</h3>
@@ -246,7 +246,7 @@ https://youtu.be/SHORT_URL"></textarea>
             </div>
             <div id="currentTask" class="text-sm text-gray-600">Menunggu...</div>
         </div>
-    </div> -->
+    </div>
     
     <!-- Results Table -->
     <div id="resultsSection" class="bg-white rounded-2xl card-shadow">
@@ -701,6 +701,7 @@ function debounce(fn, delay = 350) {
         
     //     startScraping('news_search', formData);
     // });
+
     $('#searchScrapingForm').on('submit', async function (e) {
     e.preventDefault();
 
@@ -1393,5 +1394,269 @@ $(document).on('click', '#deleteSelected', async function () {
 function closeDynamicModal() {
     $('#dynamicModal').addClass('hidden').removeClass('flex');
 }
+
+// ============================================
+// PROGRESS BAR MANAGER - TAMBAHKAN DI AKHIR
+// ============================================
+
+// Object untuk manage progress bar
+const ProgressBar = {
+    show() {
+        $('#scrapingProgress').removeClass('hidden');
+    },
+    
+    hide() {
+        $('#scrapingProgress').addClass('hidden');
+        this.reset();
+    },
+    
+    reset() {
+        $('#progressBar').css('width', '0%');
+        $('#progressText').text('0/0');
+        $('#currentTask').text('Menunggu...');
+    },
+    
+    update(current, total, taskName = '') {
+        const percentage = total > 0 ? (current / total) * 100 : 0;
+        $('#progressBar').css('width', percentage + '%');
+        $('#progressText').text(`${current}/${total}`);
+        
+        if (taskName) {
+            $('#currentTask').text(taskName);
+        }
+    },
+    
+    setTask(text) {
+        $('#currentTask').text(text);
+    }
+};
+
+// Variable untuk tracking status scraping
+let isScrapingActive = false;
+let scrapingInterval = null;
+
+// ============================================
+// UPDATE HANDLER SCRAPING BERITA LINK
+// ============================================
+$('#linkScrapingForm').off('submit').on('submit', async function(e) {
+    e.preventDefault();
+    
+    const links = $('#newsLinks').val().trim();
+    if (!links) {
+        alert('Masukkan minimal satu link berita!');
+        return;
+    }
+    
+    const urlArray = links.split('\n').filter(l => l.trim());
+    const total = urlArray.length;
+    
+    isScrapingActive = true;
+    ProgressBar.show();
+    ProgressBar.update(0, total, 'Memulai scraping berita...');
+    
+    const $btn = $('#startLinkScraping');
+    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Scraping...');
+    
+    try {
+        const formData = new FormData(this);
+        const response = await fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        });
+        
+        const contentType = response.headers.get('content-type');
+        let result;
+        
+        if (contentType && contentType.includes('application/json')) {
+            result = await response.json();
+        } else {
+            throw new Error('Response bukan JSON');
+        }
+        
+        const jobId = result.job_id;
+        
+        if (!jobId) {
+            throw new Error('Job ID tidak ditemukan');
+        }
+        
+        console.log('✅ Scraping started with job ID:', jobId);
+        
+        // ✅ REAL PROGRESS dengan polling
+        if (scrapingInterval) {
+            clearInterval(scrapingInterval);
+        }
+        
+        scrapingInterval = setInterval(async () => {
+            try {
+                const progressUrl = "{{ route('scraping.progress') }}";
+                const progressRes = await fetch(`${progressUrl}?job_id=${jobId}`);
+                const progressData = await progressRes.json();
+                
+                console.log('Progress:', progressData);
+                
+                // Update progress bar dengan data real dari backend
+                ProgressBar.update(
+                    progressData.current,
+                    progressData.total,
+                    progressData.message
+                );
+                
+                // Cek apakah selesai
+                if (progressData.status === 'completed') {
+                    clearInterval(scrapingInterval);
+                    scrapingInterval = null;
+                    
+                    // Tampilkan hasil akhir
+                    ProgressBar.setTask(`✅ Selesai! ${progressData.completed} berhasil, ${progressData.failed} gagal`);
+                    
+                    setTimeout(() => {
+                        ProgressBar.hide();
+                        isScrapingActive = false;
+                        $btn.prop('disabled', false).html('<i class="fas fa-play mr-2"></i>Mulai Scraping');
+                        $('#newsLinks').val('');
+                        loadResults(1);
+                    }, 2000);
+                }
+                
+            } catch (error) {
+                console.error('Error checking progress:', error);
+            }
+        }, 1000); // Polling setiap 1 detik
+        
+    } catch (error) {
+        console.error('Error scraping:', error);
+        
+        if (scrapingInterval) {
+            clearInterval(scrapingInterval);
+            scrapingInterval = null;
+        }
+        
+        ProgressBar.setTask('❌ Scraping gagal');
+        
+        setTimeout(() => {
+            ProgressBar.hide();
+            isScrapingActive = false;
+            $btn.prop('disabled', false).html('<i class="fas fa-play mr-2"></i>Mulai Scraping');
+        }, 2000);
+        
+        alert('Gagal melakukan scraping: ' + error.message);
+    }
+});
+
+// ============================================
+// UPDATE HANDLER SCRAPING YOUTUBE
+// ============================================
+$('#youtubeUrlForm').off('submit').on('submit', async function(e) {
+    e.preventDefault();
+    
+    const urls = $('#youtubeUrls').val().trim();
+    if (!urls) {
+        alert('Masukkan minimal satu URL YouTube!');
+        return;
+    }
+    
+    const urlArray = urls.split('\n').filter(l => l.trim());
+    const total = urlArray.length;
+    
+    isScrapingActive = true;
+    ProgressBar.show();
+    ProgressBar.update(0, total, 'Memulai scraping YouTube...');
+    
+    const $btn = $('#startYoutubeScraping');
+    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Scraping...');
+    
+    let progress = 0;
+    scrapingInterval = setInterval(() => {
+        progress++;
+        ProgressBar.update(progress, total, `Mengambil komentar video ${progress}/${total}...`);
+        
+        if (progress >= total) {
+            clearInterval(scrapingInterval);
+            ProgressBar.setTask('Scraping YouTube selesai! ✅');
+        }
+    }, 1000);
+    
+    try {
+        const formData = new FormData(this);
+        const response = await fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        });
+        
+        // ✅ PERBAIKAN: Check content type
+        const contentType = response.headers.get('content-type');
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Server error:', errorText.substring(0, 200));
+            throw new Error(`Server error: ${response.status}`);
+        }
+        
+        // ✅ PERBAIKAN: Pastikan response adalah JSON
+        let result;
+        if (contentType && contentType.includes('application/json')) {
+            result = await response.json();
+            console.log('YouTube scraping result:', result);
+        } else {
+            console.log('Response bukan JSON, tapi request sukses');
+            result = { success: true };
+        }
+        
+        setTimeout(() => {
+            ProgressBar.hide();
+            isScrapingActive = false;
+            $btn.prop('disabled', false).html('<i class="fas fa-play mr-2"></i>Mulai Scraping');
+            $('#youtubeUrls').val('');
+            
+            if (window.currentCategory !== 'youtube') {
+                $('#categoryYoutube').click();
+            } else {
+                loadResults(1);
+            }
+        }, 2000);
+        
+    } catch (error) {
+        console.error('Error scraping YouTube:', error);
+        clearInterval(scrapingInterval);
+        ProgressBar.setTask('Scraping gagal ❌');
+        
+        setTimeout(() => {
+            ProgressBar.hide();
+            isScrapingActive = false;
+            $btn.prop('disabled', false).html('<i class="fas fa-play mr-2"></i>Mulai Scraping');
+        }, 2000);
+        
+        alert('Gagal melakukan scraping YouTube. Cek console untuk detail.');
+    }
+});
+
+// ============================================
+// HANDLER STOP BUTTON
+// ============================================
+$('#stopScraping').off('click').on('click', function() {
+    if (confirm('Hentikan proses scraping?')) {
+        // Clear interval
+        if (scrapingInterval) {
+            clearInterval(scrapingInterval);
+            scrapingInterval = null;
+        }
+        
+        // Hide progress bar
+        ProgressBar.hide();
+        isScrapingActive = false;
+        
+        // Re-enable buttons
+        $('#startLinkScraping').prop('disabled', false).html('<i class="fas fa-play mr-2"></i>Mulai Scraping');
+        $('#startYoutubeScraping').prop('disabled', false).html('<i class="fas fa-play mr-2"></i>Mulai Scraping');
+    }
+});
 </script>
 @endpush

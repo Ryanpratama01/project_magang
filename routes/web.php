@@ -75,7 +75,7 @@ Route::middleware(['auth'])->group(function () {
 
     /** Sentiment */
     Route::get('/analisis-sentimen', [SentimentController::class, 'index'])->name('sentiment');
- sentimen_page
+    // sentimen_page
     // Route untuk menerima analisis teks
     Route::post('/analyze-sentiment', [SentimentController::class, 'analyze'])->name('analyze.sentiment');
     
@@ -98,9 +98,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/analisis-sentimen/export', [SentimentController::class, 'export'])->name('sentiment.export');
     Route::delete('/sentiment/{id}', [SentimentController::class, 'destroy'])->name('sentiment.destroy');
 
-    Route::get('/sentiment/{id}', [\App\Http\Controllers\SentimentController::class,'showSentiment'])
-     ->name('sentiment.show');
-
     // ==============================================
 
     // Route::get('/news-distribution', [SentimentController::class, 'index']);
@@ -108,7 +105,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/analisis-sentimen/analyze', [SentimentController::class, 'analyze'])->name('sentiment.analyze');
 
     /** Report */
-  master
     Route::get('/cetak-laporan', [ReportController::class, 'index'])->name('report');
     Route::post('/cetak-laporan/generate', [ReportController::class, 'generate'])->name('report.generate');
     Route::get('/cetak-laporan/download/{type}', [ReportController::class, 'download'])->name('report.download');

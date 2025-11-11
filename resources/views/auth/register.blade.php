@@ -19,7 +19,8 @@
         .register-card {
             backdrop-filter: blur(20px);
             background: rgba(255, 255, 255, 0.95);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         .password-strength {
             height: 4px;
@@ -36,27 +37,30 @@
                 grid-template-columns: 1fr;
             }
         }
-        .floating-label {
+        .input-wrapper {
             position: relative;
         }
-        .floating-input {
-            padding-top: 1.25rem;
-            padding-bottom: 0.25rem;
-        }
-        .floating-input + label {
+        .input-label {
             position: absolute;
-            top: 0.75rem;
             left: 3rem;
+            top: 50%;
+            transform: translateY(-50%);
             color: #9ca3af;
             font-size: 0.875rem;
-            transition: all 0.2s ease;
+            transition: opacity 0.2s ease;
             pointer-events: none;
         }
-        .floating-input:focus + label,
-        .floating-input:not(:placeholder-shown) + label {
-            top: 0.25rem;
-            font-size: 0.75rem;
-            color: #3b82f6;
+        .input-wrapper.textarea-wrapper .input-label {
+            top: 1.25rem;
+            transform: none;
+        }
+        .input-wrapper input:focus + .input-label,
+        .input-wrapper input:not(:placeholder-shown) + .input-label,
+        .input-wrapper textarea:focus + .input-label,
+        .input-wrapper textarea:not(:placeholder-shown) + .input-label,
+        .input-wrapper select:focus + .input-label,
+        .input-wrapper.has-value .input-label {
+            opacity: 0;
         }
         .input-group {
             position: relative;
@@ -70,8 +74,8 @@
         }
     </style>
 </head>
-<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
-    <div class="register-card rounded-3xl p-8 w-full max-w-4xl">
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4 py-12">
+    <div class="register-card rounded-2xl p-10 w-full max-w-3xl"
         <!-- Header Section -->
         <div class="text-center mb-8">
             <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-700 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg">
@@ -118,80 +122,89 @@
                 
                 <div class="form-grid">
                     <!-- Nama Lengkap -->
-                    <div class="floating-label">
+                    <div class="input-wrapper">
                         <div class="input-group">
+                            <i class="fas fa-user absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400 z-10"></i>
                             <input type="text" 
                                    id="name" 
                                    name="name" 
                                    value="{{ old('name') }}"
                                    required 
                                    placeholder=" "
-                                   class="floating-input w-full px-4 py-3 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white">
-                            <label for="name">Nama Lengkap</label>
-                            <i class="fas fa-user absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400"></i>
+                                   class="w-full px-4 py-3 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white">
+                            <span class="input-label">Nama Lengkap</span>
                         </div>
                     </div>
 
                     <!-- NIP -->
-                    <div class="floating-label">
+                    <div class="input-wrapper">
                         <div class="input-group">
+                            <i class="fas fa-id-card absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400 z-10"></i>
                             <input type="text"
                                    id="nip"
                                    name="nip"
                                    value="{{ old('nip') }}"
                                    placeholder=" "
-                                   class="floating-input w-full px-4 py-3 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white">
-                            <label for="nip">NIP</label>
-                            <i class="fas fa-id-card absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400"></i>
+                                   class="w-full px-4 py-3 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white">
+                            <span class="input-label">NIP</span>
                         </div>
                     </div>
 
                     <!-- Jabatan -->
-                    <div class="floating-label">
+                    <div class="input-wrapper">
                         <div class="input-group">
+                            <i class="fas fa-briefcase absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400 z-10"></i>
                             <input type="text"
                                    id="jabatan"
                                    name="jabatan"
                                    value="{{ old('jabatan') }}"
                                    placeholder=" "
-                                   class="floating-input w-full px-4 py-3 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white">
-                            <label for="jabatan">Jabatan</label>
-                            <i class="fas fa-briefcase absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400"></i>
+                                   class="w-full px-4 py-3 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white">
+                            <span class="input-label">Jabatan</span>
                         </div>
                     </div>
 
                     <!-- Jenis Kelamin -->
-                    <div class="input-group">
-                        <select id="jenis_kelamin"
-                                name="jenis_kelamin"
-                                class="w-full px-4 py-3 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white">
-                            <option value="" {{ old('jenis_kelamin')==='' ? 'selected' : '' }}>Pilih Jenis Kelamin</option>
-                            <option value="L" {{ old('jenis_kelamin')==='L' ? 'selected' : '' }}>Laki-laki</option>
-                            <option value="P" {{ old('jenis_kelamin')==='P' ? 'selected' : '' }}>Perempuan</option>
-                        </select>
-                        <i class="fas fa-venus-mars absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400"></i>
+                    <div class="input-wrapper has-value">
+                        <div class="input-group">
+                            <i class="fas fa-venus-mars absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400 z-10"></i>
+                            <select id="jenis_kelamin"
+                                    name="jenis_kelamin"
+                                    class="w-full px-4 py-3 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white">
+                                <option value="" {{ old('jenis_kelamin')==='' ? 'selected' : '' }}>Pilih Jenis Kelamin</option>
+                                <option value="L" {{ old('jenis_kelamin')==='L' ? 'selected' : '' }}>Laki-laki</option>
+                                <option value="P" {{ old('jenis_kelamin')==='P' ? 'selected' : '' }}>Perempuan</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Tanggal Lahir -->
-                    <div class="input-group">
-                        <input type="date"
-                               id="tanggal_lahir"
-                               name="tanggal_lahir"
-                               value="{{ old('tanggal_lahir') }}"
-                               class="w-full px-4 py-3 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white">
-                        <i class="fas fa-calendar-day absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400"></i>
+                    <div class="input-wrapper" id="tanggalLahirWrapper">
+                        <div class="input-group">
+                            <i class="fas fa-calendar-day absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400 z-10"></i>
+                            <input type="date"
+                                   id="tanggal_lahir"
+                                   name="tanggal_lahir"
+                                   value="{{ old('tanggal_lahir') }}"
+                                   placeholder=" "
+                                   class="w-full px-4 py-3 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white">
+                            <span class="input-label">Tanggal Lahir</span>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Alamat -->
                 <div class="mt-6">
-                    <div class="input-group">
-                        <textarea id="alamat"
-                                  name="alamat"
-                                  rows="3"
-                                  placeholder="Masukkan alamat lengkap Anda"
-                                  class="w-full px-4 py-3 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white resize-none">{{ old('alamat') }}</textarea>
-                        <i class="fas fa-map-marker-alt absolute left-4 top-6 text-blue-400"></i>
+                    <div class="input-wrapper textarea-wrapper">
+                        <div class="input-group">
+                            <i class="fas fa-map-marker-alt absolute left-4 top-6 text-blue-400 z-10"></i>
+                            <textarea id="alamat"
+                                      name="alamat"
+                                      rows="3"
+                                      placeholder=" "
+                                      class="w-full px-4 py-3 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white resize-none">{{ old('alamat') }}</textarea>
+                            <span class="input-label">Alamat</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -204,37 +217,37 @@
                 </h3>
                 
                 <!-- Email -->
-                <div class="floating-label mb-6">
+                <div class="input-wrapper mb-6">
                     <div class="input-group">
+                        <i class="fas fa-envelope absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400 z-10"></i>
                         <input type="email" 
                                id="email" 
                                name="email" 
                                value="{{ old('email') }}"
                                required 
                                placeholder=" "
-                               class="floating-input w-full px-4 py-3 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white">
-                        <label for="email">Alamat Email</label>
-                        <i class="fas fa-envelope absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400"></i>
+                               class="w-full px-4 py-3 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white">
+                        <span class="input-label">Alamat Email</span>
                     </div>
                 </div>
                 
                 <div class="form-grid">
                     <!-- Password -->
-                    <div class="floating-label">
+                    <div class="input-wrapper">
                         <div class="input-group">
+                            <i class="fas fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400 z-10"></i>
                             <input type="password" 
                                    id="password" 
                                    name="password" 
                                    required 
                                    minlength="8"
                                    placeholder=" "
-                                   class="floating-input w-full px-4 py-3 pl-12 pr-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
+                                   class="w-full px-4 py-3 pl-12 pr-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
                                    onkeyup="checkPasswordStrength()">
-                            <label for="password">Password</label>
-                            <i class="fas fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400"></i>
+                            <span class="input-label">Password</span>
                             <button type="button" 
                                     onclick="togglePassword('password')" 
-                                    class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-600 transition-colors">
+                                    class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-600 transition-colors z-10">
                                 <i id="toggleIcon1" class="fas fa-eye"></i>
                             </button>
                         </div>
@@ -246,20 +259,20 @@
                     </div>
                     
                     <!-- Konfirmasi Password -->
-                    <div class="floating-label">
+                    <div class="input-wrapper">
                         <div class="input-group">
+                            <i class="fas fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400 z-10"></i>
                             <input type="password" 
                                    id="password_confirmation" 
                                    name="password_confirmation" 
                                    required 
                                    placeholder=" "
-                                   class="floating-input w-full px-4 py-3 pl-12 pr-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
+                                   class="w-full px-4 py-3 pl-12 pr-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
                                    onkeyup="checkPasswordMatch()">
-                            <label for="password_confirmation">Konfirmasi Password</label>
-                            <i class="fas fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400"></i>
+                            <span class="input-label">Konfirmasi Password</span>
                             <button type="button" 
                                     onclick="togglePassword('password_confirmation')" 
-                                    class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-600 transition-colors">
+                                    class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-600 transition-colors z-10">
                                 <i id="toggleIcon2" class="fas fa-eye"></i>
                             </button>
                         </div>
@@ -388,6 +401,34 @@
                 matchText.className = 'text-xs text-red-600 mt-1';
             }
         }
+        
+        // Handle select change to hide label
+        document.getElementById('jenis_kelamin').addEventListener('change', function() {
+            if (this.value !== '') {
+                document.getElementById('jenisKelaminWrapper').classList.add('has-value');
+            } else {
+                document.getElementById('jenisKelaminWrapper').classList.remove('has-value');
+            }
+        });
+        
+        // Handle date input to hide label
+        document.getElementById('tanggal_lahir').addEventListener('change', function() {
+            if (this.value !== '') {
+                document.getElementById('tanggalLahirWrapper').classList.add('has-value');
+            } else {
+                document.getElementById('tanggalLahirWrapper').classList.remove('has-value');
+            }
+        });
+        
+        // Check on page load for old values
+        window.addEventListener('load', function() {
+            if (document.getElementById('jenis_kelamin').value !== '') {
+                document.getElementById('jenisKelaminWrapper').classList.add('has-value');
+            }
+            if (document.getElementById('tanggal_lahir').value !== '') {
+                document.getElementById('tanggalLahirWrapper').classList.add('has-value');
+            }
+        });
         
         // Form validation
         document.getElementById('registerForm').addEventListener('submit', function(e) {

@@ -6,12 +6,132 @@ use App\Jobs\ScrapeNewsLinksJob;
 use App\Jobs\ScrapeYoutubeLinksJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Log;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use App\Models\NewsQuote;
 use Illuminate\Support\Carbon;   
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
+use App\Http\Controllers\SentimentController;
+
+
 
 class ScrapingController extends Controller
 {
+    
+    // [ADD] Analisis sentimen untuk item terpilih (news / youtube) (aline1)
+public function analyzeSelected(Request $request)
+{
+    $data = $request->validate([
+        'ids'  => 'required|array|min:1',
+        'ids.*'=> 'integer',
+        'type' => 'required|in:news,youtube',
+    ]);
+
+    $ids  = $data['ids'];
+    $type = $data['type'];
+
+    // Ambil sumber data dari DB scraping
+    $conn = DB::connection('scrapingdb');
+
+    if ($type === 'news') {
+        $rows = $conn->table('news_quotes')
+            ->whereIn('id', $ids)
+            ->get(['id','original_text','cleaned_text','news_url']);
+    } else {
+        $rows = $conn->table('youtube_comments1')
+            ->whereIn('id', $ids)
+            ->get(['id','comment_text','cleaned_text','video_url']);
+    }
+
+    $sentCtrl = app(SentimentController::class);
+
+    $ok = 0; $skip = 0; $details = [];
+    foreach ($rows as $r) {
+        // pilih teks yang paling bersih tersedia
+        $text = null;
+        if ($type === 'news') {
+            $text = trim((string)($r->cleaned_text ?: $r->original_text));
+        } else {
+            $text = trim((string)($r->cleaned_text ?: $r->comment_text));
+        }
+
+        if ($text === '' || mb_strlen($text) < 3) { $skip++; continue; }
+
+        // Panggil analyzer yang sudah menyimpan ke tabel
+        // (SentimentController@analyze memang akan INSERT ke news_article_sentiments)
+        $res = $sentCtrl->analyze(new Request(['text' => $text]));
+        $payload = method_exists($res, 'getData') ? $res->getData(true) : (json_decode($res->getContent(), true) ?? []);
+
+        if (!empty($payload['success'])) {
+            $ok++;
+            // kumpulkan ringkasan untuk pop-up
+            $d = $payload['data'] ?? [];
+            $details[] = [
+                'id'        => $r->id,
+                'label'     => $d['sentiment'] ?? '-',
+                'confidence'=> $d['confidence'] ?? null,
+                'pos'       => $d['scores']['positive'] ?? null,
+                'neg'       => $d['scores']['negative'] ?? null,
+                'neu'       => $d['scores']['neutral'] ?? null,
+                'preview'   => mb_substr($text, 0, 120),
+            ];
+        } else {
+            $skip++;
+        }
+    }
+
+    return response()->json([
+        'success'  => true,
+        'message'  => "Analisis selesai: {$ok} berhasil, {$skip} dilewati.",
+        'analyzed' => $ok,
+        'skipped'  => $skip,
+        'details'  => $details,
+        // info: hasil sudah tersimpan oleh SentimentController@analyze
+        // ke tabel news_article_sentiments
+    ]);
+}
+
+/**
+ * [ADD] Skor sentimen sederhana (Bahasa Indonesia).
+ * Output: -1..+1 (negatif..positif)
+ */
+private function scoreSentimentId(string $text): float
+{
+    static $pos = [
+        'bagus','baik','puas','memuaskan','senang','bahagia','mantap','top','cepat','murah','hebat',
+        'terbaik','suka','rekomendasi','ramah','bersih','nyaman','lancar','stabil','keren','mantul',
+        'menarik','cukup baik','memadai','solutif','terbantu','mantap','recommended'
+    ];
+    static $neg = [
+        'buruk','jelek','kecewa','mengecewakan','lambat','mahal','parah','macet','error','rusak','gagal',
+        'tidak puas','kurang','benci','lemot','kotor','bising','bermasalah','menyedihkan','menakutkan',
+        'hancur','abal','tidak layak','menurun','fatal','payah'
+    ];
+
+    $t = mb_strtolower($text);
+    $t = preg_replace('/[^a-z0-9\s]/u', ' ', $t);
+    $words = preg_split('/\s+/', $t, -1, PREG_SPLIT_NO_EMPTY);
+
+    if (!$words) return 0.0;
+
+    $p = 0; $n = 0;
+    foreach ($words as $w) {
+        if (in_array($w, $pos, true)) $p++;
+        if (in_array($w, $neg, true)) $n++;
+    }
+
+    // bobot sederhana untuk beberapa frasa 2 kata
+    for ($i=0; $i<count($words)-1; $i++) {
+        $bg = $words[$i].' '.$words[$i+1];
+        if (in_array($bg, ['sangat baik','sangat puas','luar biasa','sangat membantu','cukup baik'], true)) $p+=2;
+        if (in_array($bg, ['sangat buruk','tidak puas','sangat lambat','sangat mahal','kurang baik'], true)) $n+=2;
+    }
+
+    $total = max(1, $p + $n);
+    return ($p - $n) / $total;
+}
+
     public function index()
     {
         return view('scraping');
@@ -23,28 +143,66 @@ class ScrapingController extends Controller
     //     return back()->with('ok','Scraping berita dimulai ('.count($urls).' URL).');
     // }
     public function scrapeNewsByLinks(Request $r) {
-    // Terima dua-duanya: 'links' atau 'newsLinks'
-    Log::info('HIT scrapeNewsByLinks', ['all'=>$r->all()]);
-    // alias: terima 'links' ATAU nama lama 'newsLinks'
-    $r->merge(['links' => $r->input('links') ?? $r->input('newsLinks')]);
+        // Terima dua-duanya: 'links' atau 'newsLinks'
+        Log::info('HIT scrapeNewsByLinks', ['all'=>$r->all()]);
+        
+        // alias: terima 'links' ATAU nama lama 'newsLinks'
+        $r->merge(['links' => $r->input('links') ?? $r->input('newsLinks')]);
 
-    $data = $r->validate([
-        'links'      => 'nullable|string|required_without:newsLinks',
-        'newsLinks'  => 'nullable|string|required_without:links',
-    ]);
+        $data = $r->validate([
+            'links'      => 'nullable|string|required_without:newsLinks',
+            'newsLinks'  => 'nullable|string|required_without:links',
+        ]);
 
-    // Ambil salah satu yang ada
-    $raw = $r->input('links') ?? $r->input('newsLinks');
+        // Ambil salah satu yang ada
+        $raw = $r->input('links') ?? $r->input('newsLinks');
 
-    $urls = collect(preg_split('/\r?\n/', trim($raw)))->filter()->unique();
-    Log::info('DISPATCH news', ['count'=>$urls->count()]);
-    
-    foreach ($urls as $url) {
-        ScrapeNewsLinksJob::dispatch((string)$url, auth()->id() ?? 0);
+        $urls = collect(preg_split('/\r?\n/', trim($raw)))->filter()->unique();
+        
+        // ✅ TAMBAHKAN: Generate unique job ID
+        $jobId = uniqid('scrape_news_', true);
+        $total = $urls->count();
+        
+        Log::info('DISPATCH news', [
+            'count' => $total, 
+            'job_id' => $jobId
+        ]);
+        
+        // ✅ TAMBAHKAN: Initialize progress di cache
+        Cache::put("scraping_progress_{$jobId}", [
+            'current' => 0,
+            'total' => $total,
+            'completed' => 0,
+            'failed' => 0,
+            'status' => 'started',
+            'message' => "Memulai scraping {$total} berita...",
+            'details' => []
+        ], now()->addMinutes(10));
+        
+        // ✅ UPDATE: Dispatch jobs dengan job ID dan index
+        foreach ($urls as $index => $url) {
+            ScrapeNewsLinksJob::dispatch(
+                (string)$url, 
+                (int) (Auth::id() ?? 0),
+                $jobId,        // Pass job ID
+                $index,        // Pass current index
+                $total         // Pass total URLs
+            );
+        }
+
+        // ✅ TAMBAHKAN: Return JSON jika AJAX request
+        if ($r->expectsJson() || $r->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'job_id' => $jobId,
+                'total' => $total,
+                'message' => "Scraping dimulai untuk {$total} berita"
+            ]);
+        }
+
+        // Redirect biasa jika bukan AJAX
+        return back()->with('ok', "Scraping berita dimulai ({$total} URL).");
     }
-
-    return back()->with('ok','Scraping berita dimulai ('.count($urls).' URL).');
-}
 
     public function startScraping(Request $request)
     {
@@ -138,7 +296,7 @@ class ScrapingController extends Controller
         $from    = $r->input('date_from');
         $to      = $r->input('date_to');
 
-        $tbl = \DB::connection('scrapingdb')
+        $tbl = DB::connection('scrapingdb')
             ->table('youtube_comments1')
             ->orderByDesc('scraped_at')
             ->orderByDesc('id');
@@ -225,7 +383,7 @@ class ScrapingController extends Controller
 
         $HARD_LIMIT = (int) $r->input('limit', 2000);
 
-        $rows = \DB::connection('scrapingdb')
+        $rows = DB::connection('scrapingdb')
             ->table('news_quotes')
             // filter kata kunci (opsional)
             ->when($q !== '', function ($w) use ($q) {
@@ -317,7 +475,7 @@ class ScrapingController extends Controller
 
     public function item($id)
     {
-        $row = \DB::table('news_quotes')->where('id', $id)->first();
+        $row = DB::table('news_quotes')->where('id', $id)->first();
 
         if (!$row) {
             return response()->json(['error' => 'Not found'], 404);
@@ -354,14 +512,14 @@ class ScrapingController extends Controller
 public function destroy($id)
 {
     try {
-        $deleted = \DB::table('news_quotes')->where('id', $id)->delete();
+        $deleted = DB::table('news_quotes')->where('id', $id)->delete();
 
         if (!$deleted) {
             return response()->json(['success' => false, 'message' => 'Item tidak ditemukan'], 404);
         }
         return response()->json(['success' => true], 200);
     } catch (\Throwable $e) {
-        \Log::error('newsDestroy error', ['e' => $e->getMessage()]);
+        Log::error('newsDestroy error', ['e' => $e->getMessage()]);
         return response()->json(['success' => false, 'message' => 'Server error'], 500);
     }
 }
@@ -374,10 +532,10 @@ public function bulkDestroy(Request $request)
     ]);
 
     try {
-        $deleted = \DB::table('news_quotes')->whereIn('id', $data['ids'])->delete();
+        $deleted = DB::table('news_quotes')->whereIn('id', $data['ids'])->delete();
         return response()->json(['success' => true, 'deleted' => $deleted], 200);
     } catch (\Throwable $e) {
-        \Log::error('newsBulkDestroy error', ['e' => $e->getMessage()]);
+        Log::error('newsBulkDestroy error', ['e' => $e->getMessage()]);
         return response()->json(['success' => false, 'message' => 'Server error'], 500);
     }
 }
@@ -404,8 +562,9 @@ public function bulkDestroy(Request $request)
         $urls = collect(preg_split('/\r?\n/', trim($data['links'])))->filter()->unique();
 
         foreach ($urls as $url) {
-            ScrapeYoutubeLinksJob::dispatch((string)$url, auth()->id() ?? 0);
-        }
+       ScrapeYoutubeLinksJob::dispatch((string) $url, Auth::id() ?? 0);
+      }
+
 
         return back()->with('ok', 'Scraping komentar YouTube dimulai ('.count($urls).' URL).');
     }
@@ -447,7 +606,7 @@ public function youtubeBulkDestroy(Request $request)
             'ids'   => 'required|array|min:1',
             'ids.*' => 'integer'
         ]);
-        $deleted = \DB::table('youtube_comments1')->whereIn('id', $data['ids'])->delete();
+        $deleted = DB::table('youtube_comments1')->whereIn('id', $data['ids'])->delete();
 
         return response()->json(['success'=>true,'deleted'=>$deleted], 200);
     } catch (\Throwable $e) {
@@ -459,7 +618,7 @@ public function youtubeBulkDestroy(Request $request)
 
     public function youtubeItem($id)
     {
-        $row = \DB::table('youtube_comments1')->where('id', $id)->first();
+        $row = DB::table('youtube_comments1')->where('id', $id)->first();
         if (!$row) {
             return response()->json(['error' => 'Not found'], 404);
         }
@@ -487,5 +646,29 @@ public function youtubeBulkDestroy(Request $request)
         ]);
     }
 
+    // app/Http/Controllers/ScrapingController.php
+
+   public function checkProgress(Request $request)
+    {
+        $jobId = $request->input('job_id');
+        
+        if (!$jobId) {
+            return response()->json(['error' => 'Job ID required'], 400);
+        }
+
+        $progress = Cache::get("scraping_progress_{$jobId}", [
+            'current' => 0,
+            'total' => 0,
+            'completed' => 0,
+            'failed' => 0,
+            'status' => 'unknown',
+            'message' => 'Data tidak ditemukan',
+            'details' => []
+        ]);
+
+        return response()->json($progress);
+    }
+
+    
 
 }

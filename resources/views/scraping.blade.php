@@ -4,6 +4,41 @@
 @section('page-title', 'Scraping')
 @section('page-description', 'Ambil data dari berbagai sumber untuk analisis sentimen')
 
+<style>
+/* ✅ Shake animation untuk warning */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.animate-shake {
+    animation: shake 0.5s ease-in-out;
+}
+
+/* ✅ Smooth transition untuk modal */
+#scrapingProgress.flex {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ✅ Mini progress hover effect */
+#miniProgress:hover {
+    transform: scale(1.05);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+</style>
+
 @section('content')
 <div class="space-y-8">
     <!-- Category Selection -->
@@ -228,25 +263,62 @@ https://youtu.be/SHORT_URL"></textarea>
         </div>
     </div>
     
-    <!-- Scraping Progress
-    <div id="scrapingProgress" class="bg-white rounded-2xl p-6 card-shadow hidden">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold text-gray-800">Progress Scraping</h3>
-            <button id="stopScraping" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
-                <i class="fas fa-stop mr-2"></i>Stop
-            </button>
-        </div>
-        <div class="space-y-4">
-            <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Progress</span>
-                <span id="progressText" class="font-medium">0/0</span>
+    <!-- Scraping Progress -->
+<div id="scrapingProgress" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl p-6 m-4 max-w-md w-full shadow-2xl transform transition-all">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-sync fa-spin text-blue-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">Progress Scraping</h3>
+                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                            <i class="fas fa-circle text-yellow-500 mr-1"></i>
+                            Sedang Berjalan
+                        </span>
+                    </div>
+                </div>
             </div>
-            <div class="w-full bg-gray-200 rounded-full h-3">
-                <div id="progressBar" class="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+            
+            <div class="space-y-4 mb-4">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600 font-medium">Progress</span>
+                    <span id="progressText" class="font-bold text-blue-600">0/0</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                    <div id="progressBar" class="bg-gradient-to-r from-blue-500 to-blue-600 h-4 rounded-full transition-all duration-300 flex items-center justify-center text-white text-xs font-bold" style="width: 0%">
+                        <span id="progressPercent" class="drop-shadow-md">0%</span>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                    <p id="currentTask" class="text-sm text-gray-700 font-medium">Menunggu...</p>
+                </div>
             </div>
-            <div id="currentTask" class="text-sm text-gray-600">Menunggu...</div>
+            
+            <div class="flex space-x-3">
+                <button id="stopScraping" class="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors font-medium">
+                    <i class="fas fa-stop mr-2"></i>Stop Scraping
+                </button>
+                <button id="minimizeProgress" class="px-4 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
         </div>
-    </div> -->
+    </div>
+    
+    <!-- Mini Progress Indicator (saat di-minimize) -->
+    <div id="miniProgress" class="fixed bottom-6 right-6 bg-white rounded-xl shadow-2xl p-4 hidden z-40 cursor-pointer hover:shadow-3xl transition-all">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <i class="fas fa-sync fa-spin text-blue-600"></i>
+            </div>
+            <div>
+                <p class="text-sm font-bold text-gray-800">Scraping...</p>
+                <p id="miniProgressText" class="text-xs text-gray-600">0/0</p>
+            </div>
+        </div>
+    </div>
     
     <!-- Results Table -->
     <div id="resultsSection" class="bg-white rounded-2xl card-shadow">
@@ -336,24 +408,56 @@ https://youtu.be/SHORT_URL"></textarea>
         </div>
     </div>
 </div>
+<!-- [ADD] Modal proses analisis sentimen (aline1) -->
+<div id="sentimentProcessing" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-2xl p-6 m-4 max-w-sm w-full shadow-2xl">
+    <div class="flex items-center space-x-3">
+      <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+        <i class="fas fa-brain fa-spin text-blue-600 text-xl"></i>
+      </div>
+      <div>
+        <h3 class="text-lg font-bold text-gray-800">Menganalisis Sentimen</h3>
+        <p class="text-gray-600 text-sm">Mohon tunggu sebentar…</p>
+      </div>
+    </div>
+    <div class="mt-4 text-sm text-gray-500" id="sentimentNote">Mengirim data ke server…</div>
+  </div>
+</div>
+
 @endsection
 
 @push('scripts')
 <script>
-    // buat global agar bisa diakses viewItem/deleteItem di luar ready()
+// ✅ PERBAIKAN: Semua variabel global di sini
 window.currentCategory = 'news';
 let currentPage = 1;
 const perPage = 50;
-// filter pencarian YouTube (global)
 const ytFilter = { q: '', from: '', to: '' };
 
+// ✅ TAMBAHAN: Status scraping global
+var isScrapingActive = false;  // 
+var scrapingInterval = null;   //  
+
 $(document).ready(function() {
-    let isScrapingActive = false;
-    
+    // let isScrapingActive = false;
+
+     window.addEventListener('beforeunload', function (e) {
+        if (isScrapingActive) {
+            const message = 'Proses scraping masih berjalan. Yakin ingin meninggalkan halaman?';
+            e.preventDefault();
+            e.returnValue = message; // Standard untuk semua browser
+            return message; // Untuk beberapa browser lama
+        }
+    });
     // Category Selection
     $('.category-card').on('click', function() {
+        // ✅ TAMBAHAN: Cegah switch kategori saat scraping
+        if (isScrapingActive) {
+            alert('Tunggu proses scraping selesai terlebih dahulu!');
+            return false;
+        }
+        
         $('.category-card').removeClass('category-active border-blue-500 bg-blue-50 border-red-500 bg-red-50')
-                           .addClass('border-gray-200 bg-gray-50');
         
         if ($(this).is('#categoryNews')) {
             window.currentCategory = 'news';
@@ -701,6 +805,7 @@ function debounce(fn, delay = 350) {
         
     //     startScraping('news_search', formData);
     // });
+
     $('#searchScrapingForm').on('submit', async function (e) {
     e.preventDefault();
 
@@ -943,7 +1048,17 @@ $('#youtubeSearchForm').on('submit', async function (e) {
     });
     
     // Analyze Selected
-    $('#analyzeSelected').on('click', function() {
+     // Analyze Selected
+    $('#analyzeSelected').on('click', function(e) {
+        // ✅ Cek apakah scraping sedang berjalan
+        if (isScrapingActive) {
+            const userConfirm = window.confirm('Proses scraping masih berjalan. Yakin ingin meninggalkan halaman ini?');
+            if (!userConfirm) {
+                e.preventDefault();
+                return false;
+            }
+        }
+        
         const selected = $('input[name="selected_items[]"]:checked').length;
         if (selected === 0) {
             alert('Pilih minimal satu item untuk dianalisis!');
@@ -951,7 +1066,8 @@ $('#youtubeSearchForm').on('submit', async function (e) {
         }
         
         const itemType = window.currentCategory === 'news' ? 'berita' : 'komentar';
-        if (confirm(`Analisis ${selected} ${itemType} yang dipilih?`)) {
+        const analyzeConfirm = window.confirm(`Analisis ${selected} ${itemType} yang dipilih?`);
+        if (analyzeConfirm) {
             window.location.href = '{{ route("sentiment") }}';
         }
     });
@@ -1390,8 +1506,563 @@ $(document).on('click', '#deleteSelected', async function () {
 
 
 // Close Modal Function
+// Close Modal Function
 function closeDynamicModal() {
     $('#dynamicModal').addClass('hidden').removeClass('flex');
 }
+
+// ============================================
+// PROGRESS BAR MANAGER
+// ============================================
+
+// ✅ Object untuk manage progress bar (HARUS DI SINI!)
+const ProgressBar = {
+    show() {
+        // ✅ Show modal dengan flex (untuk center alignment)
+        $('#scrapingProgress').removeClass('hidden').addClass('flex');
+        $('#miniProgress').addClass('hidden');
+        isScrapingActive = true;
+    },
+    
+    hide() {
+        // ✅ Hide modal
+        $('#scrapingProgress').removeClass('flex').addClass('hidden');
+        $('#miniProgress').addClass('hidden');
+        this.reset();
+        isScrapingActive = false;
+    },
+    
+    minimize() {
+        // ✅ Minimize ke indicator kecil
+        $('#scrapingProgress').removeClass('flex').addClass('hidden');
+        $('#miniProgress').removeClass('hidden');
+    },
+    
+    maximize() {
+        // ✅ Restore dari minimize
+        $('#scrapingProgress').removeClass('hidden').addClass('flex');
+        $('#miniProgress').addClass('hidden');
+    },
+    
+    reset() {
+        $('#progressBar').css('width', '0%');
+        $('#progressPercent').text('0%');
+        $('#progressText').text('0/0');
+        $('#miniProgressText').text('0/0');
+        $('#currentTask').text('Menunggu...');
+    },
+    
+    update(current, total, taskName = '') {
+        const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
+        
+        // ✅ Update main progress bar
+        $('#progressBar').css('width', percentage + '%');
+        $('#progressPercent').text(percentage + '%');
+        $('#progressText').text(`${current}/${total}`);
+        
+        // ✅ Update mini indicator
+        $('#miniProgressText').text(`${current}/${total} (${percentage}%)`);
+        
+        if (taskName) {
+            $('#currentTask').text(taskName);
+        }
+    },
+    
+    setTask(text) {
+        $('#currentTask').text(text);
+    }
+};
+
+// ✅ Handler Minimize
+$('#minimizeProgress').on('click', function() {
+    ProgressBar.minimize();
+});
+
+// ✅ Handler Maximize (klik mini progress)
+$('#miniProgress').on('click', function() {
+    ProgressBar.maximize();
+});
+
+// ✅ Cegah close modal saat klik backdrop
+$('#scrapingProgress').on('click', function(e) {
+    if (e.target === this) {
+        const modal = $(this).find('.bg-white').first();
+        modal.addClass('animate-shake');
+        setTimeout(() => modal.removeClass('animate-shake'), 500);
+    }
+});
+
+// ✅ HANDLER STOP BUTTON (HANYA SATU!)
+$('#stopScraping').on('click', function() {
+    if (confirm('Hentikan proses scraping?')) {
+        if (scrapingInterval) {
+            clearInterval(scrapingInterval);
+            scrapingInterval = null;
+        }
+        
+        ProgressBar.hide();
+        isScrapingActive = false;
+        
+        $('#startLinkScraping').prop('disabled', false).html('<i class="fas fa-play mr-2"></i>Mulai Scraping');
+        $('#startYoutubeScraping').prop('disabled', false).html('<i class="fas fa-play mr-2"></i>Mulai Scraping');
+    }
+});
+
+// Variable untuk tracking status scraping
+// let isScrapingActive = false;
+// let scrapingInterval = null;
+
+// ============================================
+// UPDATE HANDLER SCRAPING BERITA LINK
+// ============================================
+$('#linkScrapingForm').off('submit').on('submit', async function(e) {
+    e.preventDefault();
+    
+    const links = $('#newsLinks').val().trim();
+    if (!links) {
+        alert('Masukkan minimal satu link berita!');
+        return;
+    }
+    
+    const urlArray = links.split('\n').filter(l => l.trim());
+    const total = urlArray.length;
+    
+    isScrapingActive = true;
+    ProgressBar.show();
+    ProgressBar.update(0, total, 'Memulai scraping berita...');
+    
+    const $btn = $('#startLinkScraping');
+    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Scraping...');
+    
+    try {
+        const formData = new FormData(this);
+        const response = await fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        });
+        
+        const contentType = response.headers.get('content-type');
+        let result;
+        
+        if (contentType && contentType.includes('application/json')) {
+            result = await response.json();
+        } else {
+            throw new Error('Response bukan JSON');
+        }
+        
+        const jobId = result.job_id;
+        
+        if (!jobId) {
+            throw new Error('Job ID tidak ditemukan');
+        }
+        
+        console.log('✅ Scraping started with job ID:', jobId);
+        
+        // ✅ REAL PROGRESS dengan polling
+        if (scrapingInterval) {
+            clearInterval(scrapingInterval);
+        }
+        
+        scrapingInterval = setInterval(async () => {
+            try {
+                const progressUrl = "{{ route('scraping.progress') }}";
+                const progressRes = await fetch(`${progressUrl}?job_id=${jobId}`);
+                const progressData = await progressRes.json();
+                
+                console.log('Progress:', progressData);
+                
+                // Update progress bar dengan data real dari backend
+                ProgressBar.update(
+                    progressData.current,
+                    progressData.total,
+                    progressData.message
+                );
+                
+                // Cek apakah selesai
+                if (progressData.status === 'completed') {
+                    clearInterval(scrapingInterval);
+                    scrapingInterval = null;
+                    
+                    // Tampilkan hasil akhir
+                    ProgressBar.setTask(`✅ Selesai! ${progressData.completed} berhasil, ${progressData.failed} gagal`);
+                    
+                    setTimeout(() => {
+                        ProgressBar.hide();
+                        isScrapingActive = false;
+                        $btn.prop('disabled', false).html('<i class="fas fa-play mr-2"></i>Mulai Scraping');
+                        $('#newsLinks').val('');
+                        loadResults(1);
+                    }, 2000);
+                }
+                
+            } catch (error) {
+                console.error('Error checking progress:', error);
+            }
+        }, 1000); // Polling setiap 1 detik
+        
+    } catch (error) {
+        console.error('Error scraping:', error);
+        
+        if (scrapingInterval) {
+            clearInterval(scrapingInterval);
+            scrapingInterval = null;
+        }
+        
+        ProgressBar.setTask('❌ Scraping gagal');
+        
+        setTimeout(() => {
+            ProgressBar.hide();
+            isScrapingActive = false;
+            $btn.prop('disabled', false).html('<i class="fas fa-play mr-2"></i>Mulai Scraping');
+        }, 2000);
+        
+        alert('Gagal melakukan scraping: ' + error.message);
+    }
+});
+
+// ============================================
+// UPDATE HANDLER SCRAPING YOUTUBE
+// ============================================
+$('#youtubeUrlForm').off('submit').on('submit', async function(e) {
+    e.preventDefault();
+    
+    const urls = $('#youtubeUrls').val().trim();
+    if (!urls) {
+        alert('Masukkan minimal satu URL YouTube!');
+        return;
+    }
+    
+    const urlArray = urls.split('\n').filter(l => l.trim());
+    const total = urlArray.length;
+    
+    isScrapingActive = true;
+    ProgressBar.show();
+    ProgressBar.update(0, total, 'Memulai scraping YouTube...');
+    
+    const $btn = $('#startYoutubeScraping');
+    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Scraping...');
+    
+    let progress = 0;
+    scrapingInterval = setInterval(() => {
+        progress++;
+        ProgressBar.update(progress, total, `Mengambil komentar video ${progress}/${total}...`);
+        
+        if (progress >= total) {
+            clearInterval(scrapingInterval);
+            ProgressBar.setTask('Scraping YouTube selesai! ✅');
+        }
+    }, 1000);
+    
+    try {
+        const formData = new FormData(this);
+        const response = await fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        });
+        
+        // ✅ PERBAIKAN: Check content type
+        const contentType = response.headers.get('content-type');
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Server error:', errorText.substring(0, 200));
+            throw new Error(`Server error: ${response.status}`);
+        }
+        
+        // ✅ PERBAIKAN: Pastikan response adalah JSON
+        let result;
+        if (contentType && contentType.includes('application/json')) {
+            result = await response.json();
+            console.log('YouTube scraping result:', result);
+        } else {
+            console.log('Response bukan JSON, tapi request sukses');
+            result = { success: true };
+        }
+        
+        setTimeout(() => {
+            ProgressBar.hide();
+            isScrapingActive = false;
+            $btn.prop('disabled', false).html('<i class="fas fa-play mr-2"></i>Mulai Scraping');
+            $('#youtubeUrls').val('');
+            
+            if (window.currentCategory !== 'youtube') {
+                $('#categoryYoutube').click();
+            } else {
+                loadResults(1);
+            }
+        }, 2000);
+        
+    } catch (error) {
+        console.error('Error scraping YouTube:', error);
+        clearInterval(scrapingInterval);
+        ProgressBar.setTask('Scraping gagal ❌');
+        
+        setTimeout(() => {
+            ProgressBar.hide();
+            isScrapingActive = false;
+            $btn.prop('disabled', false).html('<i class="fas fa-play mr-2"></i>Mulai Scraping');
+        }, 2000);
+        
+        alert('Gagal melakukan scraping YouTube. Cek console untuk detail.');
+    }
+});
+
+// ============================================
+// HANDLER STOP BUTTON
+// ============================================
+$('#stopScraping').off('click').on('click', function() {
+    if (confirm('Hentikan proses scraping?')) {
+        // Clear interval
+        if (scrapingInterval) {
+            clearInterval(scrapingInterval);
+            scrapingInterval = null;
+        }
+        
+        // Hide progress bar
+        ProgressBar.hide();
+        isScrapingActive = false;
+        
+        // Re-enable buttons
+        $('#startLinkScraping').prop('disabled', false).html('<i class="fas fa-play mr-2"></i>Mulai Scraping');
+        $('#startYoutubeScraping').prop('disabled', false).html('<i class="fas fa-play mr-2"></i>Mulai Scraping');
+    }
+
+// ============================================
+// HANDLER ANALISIS SENTIMEN TERPILIH
+// ============================================
+$('#analyzeSelected').off('click').on('click', function(e) {
+    e.preventDefault();
+    
+    // Cek apakah scraping sedang berjalan
+    if (isScrapingActive) {
+        const userConfirm = window.confirm('Proses scraping masih berjalan. Yakin ingin meninggalkan halaman ini?');
+        if (!userConfirm) {
+            return false;
+        }
+    }
+    
+    // Ambil semua checkbox yang di-check
+    const selectedIds = [];
+    $('input[name="selected_items[]"]:checked').each(function() {
+        selectedIds.push($(this).val());
+    });
+    
+    if (selectedIds.length === 0) {
+        alert('Pilih minimal satu item untuk dianalisis!');
+        return;
+    }
+    
+    // Simpan ke localStorage untuk dibaca di halaman sentiment
+    const dataToSend = {
+        ids: selectedIds,
+        type: window.currentCategory, // 'news' atau 'youtube'
+        timestamp: Date.now()
+    };
+    
+    localStorage.setItem('pendingAnalysis', JSON.stringify(dataToSend));
+    
+    // Redirect ke halaman sentiment
+    window.location.href = '{{ route("sentiment") }}';
+});
+
+});
+
 </script>
+
+<script>
+// [ADD] Util untuk popup analisis (aline2)
+const SentimentModal = {
+  show(msg='Memproses…'){ 
+    document.getElementById('sentimentNote').textContent = msg;
+    $('#sentimentProcessing').removeClass('hidden').addClass('flex');
+  },
+  set(msg){ document.getElementById('sentimentNote').textContent = msg; },
+  hide(){ $('#sentimentProcessing').removeClass('flex').addClass('hidden'); }
+};
+
+// [ADD] Handler khusus (override yang lama, tidak mengubah yang lain)
+$('#analyzeSelected').off('click.sentiment').on('click.sentiment', async function(e){
+  e.preventDefault();
+
+  // Jika scraping masih jalan, konfirmasi dulu
+  if (typeof isScrapingActive !== 'undefined' && isScrapingActive) {
+    const ok = confirm('Proses scraping masih berjalan. Lanjut analisis sekarang?');
+    if (!ok) return;
+  }
+
+  // Ambil ID terpilih
+  const ids = $('input[name="selected_items[]"]:checked')
+    .map(function(){ return $(this).val(); })
+    .get();
+
+  if (!ids.length) { alert('Pilih minimal satu item untuk dianalisis!'); return; }
+
+  const type = (window.currentCategory === 'youtube') ? 'youtube' : 'news';
+
+  // Tampilkan modal
+  SentimentModal.show('Mengirim daftar item terpilih…');
+
+  try {
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+    const res = await fetch(`{{ route('scraping.analyze') }}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': token,
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ ids, type })
+    });
+
+    SentimentModal.set('Menunggu hasil dari server…');
+
+    if (!res.ok) {
+      const t = await res.text();
+      throw new Error(t || ('HTTP ' + res.status));
+    }
+    const json = await res.json();
+
+    // Beres
+    SentimentModal.set(`Selesai. ${json.processed ?? ids.length} item dianalisis.`);
+    setTimeout(()=>{
+      SentimentModal.hide();
+      // refresh data agar kolom/status terbaru tampil
+      if (typeof loadResults === 'function') {
+        loadResults(window.currentPage || 1);
+      } else {
+        location.reload();
+      }
+    }, 600);
+
+  } catch (err) {
+    console.error(err);
+    SentimentModal.set('Gagal memproses analisis. Coba lagi ya.');
+    setTimeout(()=> SentimentModal.hide(), 1200);
+    alert('Terjadi kesalahan saat analisis: ' + (err.message || err));
+  }
+});
+</script>
+
+// === Tambahan PALING BAWAH: ganti tombol "Analisis Sentimen" jadi AJAX ===
+$('#analyzeSelected').off('click').on('click', async function(e){
+  e.preventDefault();
+
+  if (isScrapingActive) {
+    const ok = confirm('Proses scraping masih berjalan. Tetap lanjut analisis?');
+    if (!ok) return;
+  }
+
+  const ids = $('input[name="selected_items[]"]:checked')
+      .map(function(){ return parseInt($(this).val(),10); })
+      .get()
+      .filter(Number.isInteger);
+
+  if (ids.length === 0) { alert('Pilih minimal satu item untuk dianalisis!'); return; }
+
+  const type = (window.currentCategory === 'youtube') ? 'youtube' : 'news';
+
+  // Tampilkan progress kecil pakai modal bawaan
+  ProgressBar.show();
+  ProgressBar.setTask('Mengirim data analisis...');
+  ProgressBar.update(0, ids.length);
+
+  const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+  try {
+    const res = await fetch("{{ route('scraping.analyze') }}", {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': token,
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({ ids, type })
+    });
+
+    const out = await res.json();
+    ProgressBar.hide();
+
+    if (!res.ok || !out?.success) {
+      alert(out?.message || 'Analisis gagal.');
+      return;
+    }
+
+    // Tampilkan RINGKASAN di modal dinamis
+    const rows = (out.details || []).slice(0, 10).map(d => `
+      <tr class="border-b border-gray-100">
+        <td class="py-2 px-3 text-xs text-gray-500">${d.id}</td>
+        <td class="py-2 px-3 text-sm">${escapeHtml(d.preview || '')}</td>
+        <td class="py-2 px-3">
+          <span class="px-2 py-1 rounded-full text-xs
+            ${d.label==='positive'?'bg-green-100 text-green-700':
+              d.label==='negative'?'bg-red-100 text-red-700':
+              d.label==='positive-neutral'?'bg-blue-100 text-blue-700':
+              d.label==='negative-neutral'?'bg-orange-100 text-orange-700':
+              'bg-yellow-100 text-yellow-700'}">${escapeHtml(d.label||'-')}</span>
+        </td>
+        <td class="py-2 px-3 text-xs text-gray-600">
+          P:${(d.pos??0).toFixed?.(3)??'-'} /
+          N:${(d.neg??0).toFixed?.(3)??'-'} /
+          U:${(d.neu??0).toFixed?.(3)??'-'}
+        </td>
+      </tr>
+    `).join('');
+
+    const modalHtml = `
+      <div class="space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+            <i class="fas fa-brain text-purple-600"></i>
+          </div>
+          <div>
+            <div class="font-bold text-gray-800">Analisis Selesai</div>
+            <div class="text-sm text-gray-600">${escapeHtml(out.message || '')}</div>
+          </div>
+        </div>
+        <div class="overflow-x-auto border rounded-xl">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-200 bg-gray-50">
+                <th class="py-2 px-3 text-left text-gray-700">ID</th>
+                <th class="py-2 px-3 text-left text-gray-700">Preview Teks</th>
+                <th class="py-2 px-3 text-left text-gray-700">Label</th>
+                <th class="py-2 px-3 text-left text-gray-700">Skor</th>
+              </tr>
+            </thead>
+            <tbody>${rows || '<tr><td colspan="4" class="py-4 text-center text-gray-500">Tidak ada ringkasan.</td></tr>'}</tbody>
+          </table>
+        </div>
+        <div class="flex gap-3">
+          <a href="{{ route('sentiment') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <i class="fas fa-table mr-2"></i>Lihat Tabel Analisis
+          </a>
+          <button onclick="closeDynamicModal()" class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">
+            Tutup
+          </button>
+        </div>
+      </div>
+    `;
+    $('#modalTitle').text('Ringkasan Analisis Sentimen');
+    $('#modalContent').html(modalHtml);
+    $('#dynamicModal').removeClass('hidden').addClass('flex');
+
+    // opsional: refresh tabel scraping (tidak mengganggu)
+    try { await loadResults(window.currentPage || 1); } catch(_) {}
+
+  } catch (err) {
+    ProgressBar.hide();
+    console.error(err);
+    alert('Terjadi kesalahan jaringan saat analisis.');
+  }
+});
+
 @endpush

@@ -4,6 +4,41 @@
 @section('page-title', 'Scraping')
 @section('page-description', 'Ambil data dari berbagai sumber untuk analisis sentimen')
 
+<style> /*iann*/
+/* ✅ Shake animation untuk warning */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.animate-shake {
+    animation: shake 0.5s ease-in-out;
+}
+
+/* ✅ Smooth transition untuk modal */
+#scrapingProgress.flex {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ✅ Mini progress hover effect */
+#miniProgress:hover {
+    transform: scale(1.05);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+</style>
+
 @section('content')
 <div class="space-y-8">
     <!-- Category Selection -->
@@ -228,23 +263,60 @@ https://youtu.be/SHORT_URL"></textarea>
         </div>
     </div>
     
-    <!-- Scraping Progress -->
-    <div id="scrapingProgress" class="bg-white rounded-2xl p-6 card-shadow hidden">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold text-gray-800">Progress Scraping</h3>
-            <button id="stopScraping" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
-                <i class="fas fa-stop mr-2"></i>Stop
-            </button>
+        <!-- Scraping Progress --> 
+<div id="scrapingProgress" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl p-6 m-4 max-w-md w-full shadow-2xl transform transition-all">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-sync fa-spin text-blue-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">Progress Scraping</h3>
+                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                            <i class="fas fa-circle text-yellow-500 mr-1"></i>
+                            Sedang Berjalan
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="space-y-4 mb-4">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600 font-medium">Progress</span>
+                    <span id="progressText" class="font-bold text-blue-600">0/0</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                    <div id="progressBar" class="bg-gradient-to-r from-blue-500 to-blue-600 h-4 rounded-full transition-all duration-300 flex items-center justify-center text-white text-xs font-bold" style="width: 0%">
+                        <span id="progressPercent" class="drop-shadow-md">0%</span>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                    <p id="currentTask" class="text-sm text-gray-700 font-medium">Menunggu...</p>
+                </div>
+            </div>
+            
+            <div class="flex space-x-3">
+                <button id="stopScraping" class="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors font-medium">
+                    <i class="fas fa-stop mr-2"></i>Stop Scraping
+                </button>
+                <button id="minimizeProgress" class="px-4 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
         </div>
-        <div class="space-y-4">
-            <div class="flex justify-between text-sm">
-                <span class="text-gray-600">Progress</span>
-                <span id="progressText" class="font-medium">0/0</span>
+    </div>
+    
+    <!-- Mini Progress Indicator (saat di-minimize) -->
+    <div id="miniProgress" class="fixed bottom-6 right-6 bg-white rounded-xl shadow-2xl p-4 hidden z-40 cursor-pointer hover:shadow-3xl transition-all">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <i class="fas fa-sync fa-spin text-blue-600"></i>
             </div>
-            <div class="w-full bg-gray-200 rounded-full h-3">
-                <div id="progressBar" class="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+            <div>
+                <p class="text-sm font-bold text-gray-800">Scraping...</p>
+                <p id="miniProgressText" class="text-xs text-gray-600">0/0</p>
             </div>
-            <div id="currentTask" class="text-sm text-gray-600">Menunggu...</div>
         </div>
     </div>
     
@@ -373,13 +445,30 @@ const perPage = 50;
 // filter pencarian YouTube (global)
 const ytFilter = { q: '', from: '', to: '' };
 
+// ✅ TAMBAHAN: Status scraping global
+var isScrapingActive = false;  // 
+var scrapingInterval = null;   // 
+
 $(document).ready(function() {
-    let isScrapingActive = false;
-    
+    // let isScrapingActive = false;
+     window.addEventListener('beforeunload', function (e) {
+        if (isScrapingActive) {
+            const message = 'Proses scraping masih berjalan. Yakin ingin meninggalkan halaman?';
+            e.preventDefault();
+            e.returnValue = message; // Standard untuk semua browser
+            return message; // Untuk beberapa browser lama
+        }
+    });
+ 
     // Category Selection
     $('.category-card').on('click', function() {
+        // ✅ TAMBAHAN: Cegah switch kategori saat scraping
+        if (isScrapingActive) {
+            alert('Tunggu proses scraping selesai terlebih dahulu!');
+            return false;
+        }
+        
         $('.category-card').removeClass('category-active border-blue-500 bg-blue-50 border-red-500 bg-red-50')
-                           .addClass('border-gray-200 bg-gray-50');
         
         if ($(this).is('#categoryNews')) {
             window.currentCategory = 'news';
@@ -1428,24 +1517,50 @@ function closeDynamicModal() {
 // Object untuk manage progress bar
 const ProgressBar = {
     show() {
-        $('#scrapingProgress').removeClass('hidden');
+        // ✅ Show modal dengan flex (untuk center alignment)
+        $('#scrapingProgress').removeClass('hidden').addClass('flex');
+        $('#miniProgress').addClass('hidden');
+        isScrapingActive = true;
     },
     
     hide() {
-        $('#scrapingProgress').addClass('hidden');
+        // ✅ Hide modal
+        $('#scrapingProgress').removeClass('flex').addClass('hidden');
+        $('#miniProgress').addClass('hidden');
         this.reset();
+        isScrapingActive = false;
+    },
+    
+    minimize() {
+        // ✅ Minimize ke indicator kecil
+        $('#scrapingProgress').removeClass('flex').addClass('hidden');
+        $('#miniProgress').removeClass('hidden');
+    },
+    
+    maximize() {
+        // ✅ Restore dari minimize
+        $('#scrapingProgress').removeClass('hidden').addClass('flex');
+        $('#miniProgress').addClass('hidden');
     },
     
     reset() {
         $('#progressBar').css('width', '0%');
+        $('#progressPercent').text('0%');
         $('#progressText').text('0/0');
+        $('#miniProgressText').text('0/0');
         $('#currentTask').text('Menunggu...');
     },
     
     update(current, total, taskName = '') {
-        const percentage = total > 0 ? (current / total) * 100 : 0;
+        const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
+        
+        // ✅ Update main progress bar
         $('#progressBar').css('width', percentage + '%');
+        $('#progressPercent').text(percentage + '%');
         $('#progressText').text(`${current}/${total}`);
+        
+        // ✅ Update mini indicator
+        $('#miniProgressText').text(`${current}/${total} (${percentage}%)`);
         
         if (taskName) {
             $('#currentTask').text(taskName);
@@ -1457,9 +1572,10 @@ const ProgressBar = {
     }
 };
 
-// Variable untuk tracking status scraping
-let isScrapingActive = false;
-let scrapingInterval = null;
+
+// // Variable untuk tracking status scraping
+// let isScrapingActive = false;
+// let scrapingInterval = null;
 
 // ============================================
 // UPDATE HANDLER SCRAPING BERITA LINK

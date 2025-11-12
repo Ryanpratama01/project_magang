@@ -114,10 +114,11 @@
                             </button>
                         </div>
                         <button 
-                            onclick="loadProfileData()" 
-                            class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center hover:shadow-lg hover:scale-110 transition-all cursor-pointer"
+                            onclick="toggleProfileDropdown()" 
+                            id="profileBtn"
+                            class="w-10 h-10 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full flex items-center justify-center hover:shadow-lg hover:scale-110 transition-all cursor-pointer"
                             title="Lihat Profil">
-                            <span class="text-white font-medium">{{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}</span>
+                            <span class="text-white font-medium" id="profileInitial">{{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}</span>
                         </button>
                     </div>
                 </div>
@@ -151,7 +152,28 @@
         });
     </script>
 
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom JS -->
+    <script>
+        // CSRF token setup for AJAX
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+        
+        // Animation on load
+        document.addEventListener('DOMContentLoaded', function() {
+            const elements = document.querySelectorAll('.animate-fade-in');
+            elements.forEach((el, index) => {
+                el.style.animationDelay = `${index * 0.1}s`;
+            });
+        });
+    </script>
     
     <!-- Profile Modal -->
     @include('partials.profile-modal')

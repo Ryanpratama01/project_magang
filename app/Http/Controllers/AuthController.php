@@ -19,19 +19,19 @@ class AuthController extends Controller
     {
         return view('auth.login');
     }
-    
+
     public function login(Request $request)
     {
         $credentials = $request->validate([
             'email' => 'required|email',
             'password' => 'required'
         ]);
-        
+
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
             return redirect()->intended('/dashboard');
         }
-        
+
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
         ])->onlyInput('email');
@@ -70,13 +70,13 @@ class AuthController extends Controller
 
         return redirect()->route('login')->with('success', 'Registrasi berhasil! Silakan masuk.');
     }
-    
+
     public function logout(Request $request)
     {
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        
+
         return redirect('/login');
     }
 
@@ -94,7 +94,7 @@ class AuthController extends Controller
 
         // Cek apakah email ada di database
         $user = User::where('email', $request->email)->first();
-        
+
         if (!$user) {
             return back()->withErrors([
                 'email' => 'Email tidak ditemukan dalam sistem kami.'
@@ -106,10 +106,10 @@ class AuthController extends Controller
 
         // Simpan OTP di session untuk debugging (hapus di production)
         session(['debug_otp' => $otp, 'reset_email' => $request->email]);
-        
+
         // Hapus token lama jika ada
         DB::table('password_reset_tokens')->where('email', $request->email)->delete();
-        
+
         // Simpan OTP ke database
         DB::table('password_reset_tokens')->insert([
             'email' => $request->email,
@@ -135,7 +135,7 @@ class AuthController extends Controller
     public function showResetForm(Request $request, $token = null)
     {
         return view('auth.reset-password', [
-            'token' => $token, 
+            'token' => $token,
             'email' => $request->email
         ]);
     }
@@ -173,7 +173,7 @@ class AuthController extends Controller
 
         // Hapus token OTP
         DB::table('password_reset_tokens')->where('email', $request->email)->delete();
-        session()->forget('otp_verified');  // Menghapus OTP yang sudah diverifikasi
+        $request->session()->forget('otp_verified');  // Menghapus OTP yang sudah diverifikasi
 
         return redirect()->route('login')->with('success', 'Password berhasil direset. Silakan login dengan password baru.');
     }
@@ -202,7 +202,7 @@ class AuthController extends Controller
         ]);
 
         $email = session('reset_email');
-        
+
         if (!$email) {
             return redirect()->route('password.request')
                 ->withErrors(['email' => 'Session expired. Silakan mulai ulang.']);
@@ -220,7 +220,7 @@ class AuthController extends Controller
         // Cek apakah token sudah expired (15 menit)
         if (now()->diffInMinutes($tokenData->created_at) > 10) {
             DB::table('password_reset_tokens')->where('email', $email)->delete();
-            session()->forget(['debug_otp', 'reset_email']);
+            $request->session()->forget(['debug_otp', 'reset_email']);
             return redirect()->route('password.request')
                 ->withErrors(['email' => 'Kode OTP sudah expired. Silakan request ulang.']);
         }
@@ -243,7 +243,7 @@ class AuthController extends Controller
     public function resendOtp()
     {
         $email = session('reset_email');
-        
+
         if (!$email) {
             return redirect()->route('password.request')
                 ->withErrors(['email' => 'Session expired. Silakan mulai ulang.']);
@@ -251,7 +251,7 @@ class AuthController extends Controller
 
         // Generate OTP baru
         $otp = str_pad(random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
-        
+
         // Update token di database
         DB::table('password_reset_tokens')
             ->where('email', $email)
@@ -263,9 +263,10 @@ class AuthController extends Controller
         // Update debug session
         session(['debug_otp' => $otp]);
 
-        return back()->with('status', 
-            'Kode OTP baru telah dikirim ke email Anda. ' . 
-            '(Debug: OTP = ' . $otp . ')'  // Hapus di production
+        return back()->with(
+            'status',
+            'Kode OTP baru telah dikirim ke email Anda. ' .
+                '(Debug: OTP = ' . $otp . ')'  // Hapus di production
         );
     }
 }

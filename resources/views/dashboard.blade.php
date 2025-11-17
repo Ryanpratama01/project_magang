@@ -7,8 +7,9 @@
 @section('content')
 <div class="space-y-8">
     {{-- Bridge untuk JS (ambil base url & query) --}}
-    <div id="dashRoot" data-base-url="{{ route('dashboard') }}" data-data-url="{{ route('dashboard.data') }}" data-q="{{ request('q') }}" data-source="{{ $source ?? (request('source') === 'youtube' ? 'youtube' : 'news') }}">
+    <div id="dashRoot" data-base-url="{{ route('dashboard') }}" data-data-url="{{ route('dashboard.data') }}" data-q="{{ request('q') }}" data-source="{{ $source ?? (request('source') === 'youtube' ? 'youtube' : 'news') }}" data-total-all="{{ (int)($totalAll ?? 0) }}">
     </div>
+
 
     <!-- Header + Filter Sumber -->
     <div class="flex justify-between items-center">
@@ -236,8 +237,9 @@
     <div class="bg-white rounded-2xl p-6 card-shadow news-section">
         <div class="flex items-center justify-between mb-6">
             <h3 class="text-xl font-bold text-gray-800">Berita Terbaru</h3>
-            <a href="{{ route('scraping') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Lihat Semua</a>
+            <a id="btnSeeAll" href="#" class="text-blue-600 hover:text-blue-800 text-sm font-medium" aria-pressed="false">Lihat Semua</a>
         </div>
+
 
         {{-- Toolbar pencarian --}}
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
@@ -260,14 +262,21 @@
                 @endif
             </form>
 
-            <div class="text-sm text-gray-600">
-                Menampilkan <span class="font-medium">{{ $newsData->count() }}</span> item
+            <div id="newsCounter" class="text-sm text-gray-600" aria-live="polite">
+                Menampilkan
+                <span id="shownCount" class="font-medium">{{ min(10, (int)($totalAll ?? 0)) }}</span>
+                <span id="ofTotal">
+                    dari <span id="totalCount" class="font-medium">{{ (int)($totalAll ?? 0) }}</span>
+                </span>
+                item
                 @if($q) untuk kata kunci <span class="font-medium">"{{ $q }}"</span>@endif
             </div>
+
+
         </div>
 
         <div id="newsTableContainer" class="overflow-x-auto">
-            @include('partials._news_table', [
+            @include('partials._news_table_dashboard', [
             'newsData' => $newsData,
             'q' => $q ?? request('q'),
             ])
@@ -305,9 +314,17 @@
         const root = document.getElementById('dashRoot');
         const baseUrl = root?.dataset.baseUrl || '';
         const dataUrl = root?.dataset.dataUrl || (baseUrl.replace(/\/$/, '') + '/data');
+        const totalAllInit = Number(root?.dataset.totalAll || 0);
         let currentQ = root?.dataset.q || '';
         let currentYear = $('#yearFilter').val();
         let currentSource = (new URLSearchParams(location.search).get('source') === 'youtube' || root?.dataset.source === 'youtube') ? 'youtube' : 'news';
+        let showingAll = false; // false = ringkas (10 init / 50 ajax), true = banyak (200)
+
+        updateNewsCounter({
+            totalAll: totalAllInit,
+            mode: 'top10'
+        });
+
 
         // === C. Helpers ===
         function getYearsForSource(src) {
@@ -319,12 +336,14 @@
         async function fetchData({
             year,
             q,
-            source
+            source,
+            show
         }) {
             const params = new URLSearchParams();
             if (year) params.set('year', year);
             if (q !== undefined) params.set('q', q);
             if (source) params.set('source', source);
+            if (show) params.set('show', show); // << penting
 
             const res = await fetch(`${dataUrl}?${params.toString()}`, {
                 headers: {
@@ -349,6 +368,30 @@
                 $sel.append(`<option value="${y}" ${sel}>${y}</option>`);
             });
         }
+
+        function updateNewsCounter({
+            totalAll,
+            mode
+        }) {
+            const $shown = $('#shownCount');
+            const $ofTotalWrap = $('#ofTotal');
+            const $total = $('#totalCount');
+
+            const tAll = Number(totalAll || 0);
+
+            if (mode === 'all') {
+                // Menampilkan TOTAL item
+                $shown.text(tAll);
+                $ofTotalWrap.addClass('hidden'); // sembunyikan "dari ..."
+            } else {
+                // Mode ringkas: Menampilkan 10 dari TOTAL item (pakai min bila total < 10)
+                const top = Math.min(10, tAll);
+                $shown.text(top);
+                $total.text(tAll);
+                $ofTotalWrap.removeClass('hidden');
+            }
+        }
+
 
         async function syncYearOptionsWithSource({
             fetchIfChanged = false
@@ -426,6 +469,11 @@
             updateCharts(currentSource);
 
             if (p.newsTableHtml) $('#newsTableContainer').html(p.newsTableHtml);
+
+            updateNewsCounter({
+                totalAll: p.total_all,
+                mode: showingAll ? 'all' : 'top10'
+            });
 
             // sinkron dropdown tahun setelah apply
             rebuildYearOptions(getYearsForSource(currentSource), currentYear);
@@ -590,8 +638,10 @@
                 const payload = await fetchData({
                     year: y,
                     q: currentQ,
-                    source: currentSource
+                    source: currentSource,
+                    show: showingAll ? 'all' : 'top10',
                 });
+
                 applyPayload(payload);
                 history.replaceState(null, '',
                     `${baseUrl}?year=${encodeURIComponent(y)}${currentQ?`&q=${encodeURIComponent(currentQ)}`:''}&source=${encodeURIComponent(currentSource)}`
@@ -604,6 +654,13 @@
         // ganti sumber (sinkron dropdown & grafik)
         $('#sourceFilter').on('change', async function() {
             currentSource = this.value;
+            const payload = await fetchData({
+                year: currentYear,
+                q: currentQ,
+                source: currentSource,
+                show: showingAll ? 'all' : 'top10',
+            });
+
             toggleSections(currentSource);
             updateCards(currentSource);
             await syncYearOptionsWithSource({
@@ -633,8 +690,10 @@
                 const payload = await fetchData({
                     year: currentYear,
                     q,
-                    source: currentSource
+                    source: currentSource,
+                    show: showingAll ? 'all' : 'top10',
                 });
+
                 applyPayload(payload);
                 history.replaceState(null, '',
                     `${baseUrl}?year=${encodeURIComponent(currentYear)}${q?`&q=${encodeURIComponent(q)}`:''}&source=${encodeURIComponent(currentSource)}`
@@ -651,8 +710,10 @@
                 const payload = await fetchData({
                     year: currentYear,
                     q: '',
-                    source: currentSource
+                    source: currentSource,
+                    show: showingAll ? 'all' : 'top10',
                 });
+
                 applyPayload(payload);
                 const url = new URL(baseUrl, location.origin);
                 url.searchParams.set('year', currentYear);
@@ -670,6 +731,29 @@
                 this.blur();
             }
         });
+
+        $('#btnSeeAll').on('click', async function(e) {
+            e.preventDefault();
+            try {
+                showingAll = !showingAll;
+                $(this).text(showingAll ? 'Tampilkan 10 Terbaru' : 'Lihat Semua');
+
+                const payload = await fetchData({
+                    year: currentYear,
+                    q: currentQ,
+                    source: currentSource,
+                    show: showingAll ? 'all' : 'top10',
+                });
+
+                applyPayload(payload); // ini akan memanggil updateNewsCounter(...)
+            } catch (err) {
+                console.error(err);
+                alert('Gagal memuat data.');
+            }
+        });
+
+
+
     });
 </script>
 @endpush

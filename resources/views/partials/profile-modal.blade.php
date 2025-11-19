@@ -1,10 +1,46 @@
+<!-- Dropdown Menu (Muncul saat klik button profil) -->
+<div id="profileDropdown" class="hidden" style="position: fixed; top: 70px; right: 20px; width: 320px; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); z-index: 1000; overflow: hidden; animation: slideDown 0.3s ease-out;">
+    <!-- Profile Info Section -->
+    <div style="padding: 16px;">
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <div style="width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: white; flex-shrink: 0;">
+                <span id="profileAvatarDropdown">E</span>
+            </div>
+            <div style="flex: 1;">
+                <p style="font-weight: 600; color: #212529; margin: 0; font-size: 14px;" id="profileNameDropdown">Loading...</p>
+                <p style="font-size: 12px; color: #6c757d; margin: 4px 0 0 0;" id="profileEmailDropdown">Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <div style="height: 1px; background: #e9ecef;"></div>
+
+    <!-- Menu: Lihat Profil -->
+    <a href="javascript:void(0)" onclick="openProfileModal()" onmouseover="this.style.background='#f8f9fa'; this.style.color='#3b82f6'" onmouseout="this.style.background='white'; this.style.color='#495057'" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: #495057; text-decoration: none; transition: all 0.2s ease; cursor: pointer;">
+        <i class="fas fa-user-circle" style="width: 18px; text-align: center; color: #3b82f6;"></i>
+        <span style="font-size: 14px; font-weight: 500;">Lihat Profil</span>
+        <i class="fas fa-chevron-right" style="margin-left: auto; font-size: 12px; color: #ccc;"></i>
+    </a>
+
+    <div style="height: 1px; background: #e9ecef;"></div>
+
+    <!-- Logout -->
+    <form method="POST" action="{{ route('logout') }}" style="margin: 0;">
+        @csrf
+        <button type="submit" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='white'" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: #dc3545; border: none; background: white; width: 100%; text-align: left; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s ease;">
+            <i class="fas fa-sign-out-alt" style="width: 18px; text-align: center; color: #dc3545;"></i>
+            <span>Logout</span>
+        </button>
+    </form>
+</div>
+
 <!-- Modal Profile dengan Fitur Edit Lengkap -->
 <div id="profileModal" class="modal fade" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content" style="border-radius: 15px; border: none;">
             
             <!-- Header -->
-            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px 15px 0 0;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; border-radius: 15px 15px 0 0;">
                 <h5 class="modal-title">
                     <i class="fas fa-user-circle"></i> 
                     <span id="modalTitle">Profil Pengguna</span>
@@ -16,7 +52,7 @@
 
             <!-- Avatar -->
             <div class="text-center" style="margin-top: -50px;">
-                <div id="profileAvatar" style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: bold; color: white; border: 5px solid white; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
+                <div id="profileAvatar" style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: bold; color: white; border: 5px solid white; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
                     <i class="fas fa-user"></i>
                 </div>
             </div>
@@ -36,6 +72,18 @@
 </div>
 
 <style>
+/* Dropdown Animation */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Profile Item Styles */
 .profile-item {
     padding: 15px;
@@ -56,7 +104,7 @@
     width: 40px;
     height: 40px;
     min-width: 40px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -89,7 +137,7 @@
 .badge-custom {
     display: inline-block;
     padding: 5px 12px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
     color: white;
     border-radius: 20px;
     font-size: 14px;
@@ -111,7 +159,7 @@
 }
 
 .form-group label i {
-    color: #667eea;
+    color: #3b82f6;
 }
 
 .form-control {
@@ -122,13 +170,13 @@
 }
 
 .form-control:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
     outline: none;
 }
 
 .btn-gradient {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
     border: none;
     color: white;
     padding: 10px 25px;
@@ -139,7 +187,7 @@
 
 .btn-gradient:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
     color: white;
 }
 
@@ -159,7 +207,7 @@
     width: 3rem;
     height: 3rem;
     border-width: 4px;
-    border-color: #667eea;
+    border-color: #3b82f6;
     border-right-color: transparent;
 }
 
@@ -201,17 +249,91 @@
 }
 
 .modal-body::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
     border-radius: 10px;
 }
 </style>
 
 <script>
+// ===== DROPDOWN FUNCTIONS =====
+function toggleProfileDropdown() {
+    console.log('Toggle dropdown called');
+    const dropdown = document.getElementById('profileDropdown');
+    
+    if (!dropdown) {
+        console.error('Dropdown element not found!');
+        return;
+    }
+    
+    if (dropdown.classList.contains('hidden')) {
+        dropdown.classList.remove('hidden');
+        loadProfileDropdownData();
+    } else {
+        dropdown.classList.add('hidden');
+    }
+}
+
+function closeProfileDropdown() {
+    const dropdown = document.getElementById('profileDropdown');
+    if (dropdown) {
+        dropdown.classList.add('hidden');
+    }
+}
+
+function loadProfileDropdownData() {
+    fetch('{{ route("profile.data") }}', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Profile data loaded:', data);
+        if (data.success) {
+            const user = data.user;
+            const initial = user.name ? user.name.charAt(0).toUpperCase() : 'U';
+            
+            // Update dropdown
+            document.getElementById('profileAvatarDropdown').textContent = initial;
+            document.getElementById('profileNameDropdown').textContent = user.name || 'User';
+            document.getElementById('profileEmailDropdown').textContent = user.email || '';
+            
+            // Update button initial
+            const btnInitial = document.getElementById('profileInitial');
+            if (btnInitial) btnInitial.textContent = initial;
+            
+            // Simpan data
+            currentUserData = user;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+function openProfileModal() {
+    closeProfileDropdown();
+    toggleProfileData();
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('profileDropdown');
+    const btn = document.getElementById('profileBtn');
+    
+    if (dropdown && btn && !btn.contains(event.target) && !dropdown.contains(event.target)) {
+        closeProfileDropdown();
+    }
+});
+
+// ===== MODAL FUNCTIONS =====
 let isEditMode = false;
 let currentUserData = null;
 
 // Fungsi untuk membuka modal dan load data
-function loadProfileData() {
+function toggleProfileData() {
     $('#profileModal').modal('show');
     isEditMode = false;
     
@@ -518,6 +640,9 @@ function saveProfile() {
                 </div>
             `);
             
+            // Update dropdown juga
+            loadProfileDropdownData();
+            
             // Kembali ke view mode setelah 1.5 detik
             setTimeout(() => {
                 displayProfileView(currentUserData);
@@ -584,4 +709,9 @@ function showError(message) {
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
     `);
 }
+
+// Load dropdown data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadProfileDropdownData();
+});
 </script>

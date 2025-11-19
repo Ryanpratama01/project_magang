@@ -12,6 +12,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Throwable;
 
 class ScrapeNewsLinksJob implements ShouldQueue
@@ -20,10 +21,40 @@ class ScrapeNewsLinksJob implements ShouldQueue
 
     public int $tries = 3;
 
-    public function __construct(public string $url, public int $userId = 0) {}
+     // ✅ TAMBAHKAN: Property untuk tracking
+    public string $url;
+    public int $userId;
+     public ?string $jobId = null;
+    public int $currentIndex = 0;
+    public int $totalUrls = 1;
+
+    public function __construct(
+        string $url,
+        int $userId = 0,
+        ?string $jobId = null,
+        int $currentIndex = 0,
+        int $totalUrls = 1
+    ) {
+        $this->url = $url;
+        $this->userId = $userId;
+        $this->jobId = $jobId;
+        $this->currentIndex = $currentIndex;
+        $this->totalUrls = $totalUrls;
+    }
 
     public function handle(NewsScraper $scraper): void
     {
+        Log::info('JOB HANDLE START', [
+            'url' => $this->url,
+            'job_id' => $this->jobId,
+            'current_index' => $this->currentIndex,
+            'total_urls' => $this->totalUrls
+        ]);
+
+         // ✅ TAMBAHKAN: Update progress di awal
+        if ($this->jobId) {
+            $this->updateProgress('processing', 'Mengambil berita dari ' . parse_url($this->url, PHP_URL_HOST) . '...');
+        }
         Log::info('JOB: start', [
             'url' => $this->url,
             'db'  => DB::connection()->getDatabaseName(),
@@ -64,6 +95,12 @@ class ScrapeNewsLinksJob implements ShouldQueue
                 ]);
 
                 Log::warning('JOB: quotes empty, inserted debug marker', ['url' => $this->url]);
+
+                // ✅ TAMBAHKAN: Update progress setelah selesai
+                if ($this->jobId) {
+                    $this->updateProgress('completed', 'Berita dari ' . parse_url($this->url, PHP_URL_HOST) . ' selesai (0 kutipan)');
+                }
+
                 return;
             }
 
@@ -104,6 +141,12 @@ class ScrapeNewsLinksJob implements ShouldQueue
 
             if (empty($rows)) {
                 Log::warning('JOB: no valid rows built', ['url' => $this->url]);
+
+                // ✅ TAMBAHKAN: Update progress
+                if ($this->jobId) {
+                    $this->updateProgress('completed', 'Tidak ada kutipan valid');
+                }
+
                 return;
             }
 
@@ -111,15 +154,87 @@ class ScrapeNewsLinksJob implements ShouldQueue
             DB::table('news_quotes')->insert($rows);
 
             Log::info('JOB: done', ['url' => $this->url, 'inserted' => count($rows)]);
+
+            // ✅ TAMBAHKAN: Update progress setelah berhasil
+            if ($this->jobId) {
+                $this->updateProgress('completed', 'Berhasil menyimpan ' . count($rows) . ' kutipan');
+            }
+
         } catch (QueryException $e) {
             Log::error('JOB: DB error', ['url' => $this->url, 'err' => $e->getMessage()]);
+
+            // ✅ TAMBAHKAN: Update progress saat error
+            if ($this->jobId) {
+                $this->updateProgress('failed', 'Gagal: Database error');
+            }
+
             throw $e; // biar job FAIL kalau DB bermasalah
         } catch (Throwable $e) {
             Log::error('JOB: failed', ['url' => $this->url, 'err' => $e->getMessage()]);
+            // ✅ TAMBAHKAN: Update progress saat error
+            if ($this->jobId) {
+                $this->updateProgress('failed', 'Gagal: ' . $e->getMessage());
+            }
+
             throw $e;
         }
     }
 
+    // ✅ TAMBAHKAN: Method untuk update progress
+    private function updateProgress(string $status, string $message): void
+    {
+        if (!$this->jobId) {
+            Log::warning('updateProgress called but jobId is null');
+            return;
+        }
+
+        Log::info('UPDATE PROGRESS', [
+            'job_id' => $this->jobId,
+            'status' => $status,
+            'message' => $message,
+            'current_index' => $this->currentIndex,
+            'total' => $this->totalUrls
+        ]);
+
+        $progress = Cache::get("scraping_progress_{$this->jobId}", [
+            'current' => 0,
+            'total' => $this->totalUrls,
+            'completed' => 0,
+            'failed' => 0,
+            'status' => 'waiting',
+            'message' => 'Menunggu...',
+            'details' => []
+        ]);
+
+        if ($status === 'completed') {
+            $progress['completed']++;
+        } elseif ($status === 'failed') {
+            $progress['failed']++;
+        }
+
+        $progress['current'] = $progress['completed'] + $progress['failed'];
+
+        if ($progress['current'] >= $this->totalUrls) {
+            $progress['status'] = 'completed';
+            $progress['message'] = "Selesai! {$progress['completed']} berhasil, {$progress['failed']} gagal";
+        } else {
+            $progress['status'] = 'processing';
+            $progress['message'] = "Memproses berita {$progress['current']}/{$this->totalUrls}...";
+        }
+
+        $progress['details'][$this->currentIndex] = [
+            'url' => $this->url,
+            'status' => $status,
+            'message' => $message,
+            'timestamp' => now()->toDateTimeString()
+        ];
+
+        Cache::put("scraping_progress_{$this->jobId}", $progress, now()->addMinutes(10));
+        
+        Log::info('PROGRESS SAVED', ['progress' => $progress]);
+    }
+
+    
     // ===== Helpers =====
 
     private function normalizePublishedAt(?string $raw): Carbon

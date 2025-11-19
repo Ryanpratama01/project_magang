@@ -4,7 +4,7 @@
 @section('page-title', 'Scraping')
 @section('page-description', 'Ambil data dari berbagai sumber untuk analisis sentimen')
 
-<style> /*iann*/
+<style>
 /* ✅ Shake animation untuk warning */
 @keyframes shake {
     0%, 100% { transform: translateX(0); }
@@ -62,9 +62,6 @@
                     <div>
                         <h4 class="font-bold text-blue-800 mb-1">Scraping Berita</h4>
                         <p class="text-blue-600 text-sm">Ambil data berita dari website portal berita</p>
-                        <div class="flex items-center mt-2 space-x-2">
-
-                        </div>
                     </div>
                 </div>
             </div>
@@ -77,8 +74,6 @@
                     <div>
                         <h4 class="font-bold text-red-800 mb-1">Scraping YouTube</h4>
                         <p class="text-red-600 text-sm">Ambil data komentar dari video YouTube</p>
-                        <div class="flex items-center mt-2 space-x-2">
-                        </div>
                     </div>
                 </div>
             </div>
@@ -139,8 +134,6 @@ https://example.com/berita-3"></textarea>
                 
                 <form id="searchScrapingForm" class="space-y-4">
                     @csrf
-                    
-                    
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Masukkan Kata Kunci</label>
                         <input 
@@ -205,8 +198,6 @@ https://www.youtube.com/watch?v=VIDEO_ID_2
 https://youtu.be/SHORT_URL"></textarea>
                     </div>
                     
-                    
-                    
                     <div class="flex justify-between items-center">
                         <button type="button" id="clearYoutubeUrls" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
                             <i class="fas fa-trash mr-2"></i>Bersihkan
@@ -241,8 +232,6 @@ https://youtu.be/SHORT_URL"></textarea>
                             placeholder="politik indonesia, review produk, tutorial">
                     </div>
                     
-                    
-                    
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Filter Tanggal Upload</label>
                         <select name="upload_date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
@@ -255,7 +244,7 @@ https://youtu.be/SHORT_URL"></textarea>
                         </select>
                     </div>
                     
-                    <button type="submit" id="startYoutubeSearch" class="w-full px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red -700 transition-all duration-200 font-medium">
+                    <button type="submit" id="startYoutubeSearch" class="w-full px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 font-medium">
                         <i class="fas fa-search mr-2"></i>Cari Komentar
                     </button>
                 </form>
@@ -263,8 +252,8 @@ https://youtu.be/SHORT_URL"></textarea>
         </div>
     </div>
     
-        <!-- Scraping Progress --> 
-<div id="scrapingProgress" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <!-- Scraping Progress -->
+    <div id="scrapingProgress" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded-2xl p-6 m-4 max-w-md w-full shadow-2xl transform transition-all">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center space-x-3">
@@ -326,10 +315,10 @@ https://youtu.be/SHORT_URL"></textarea>
             <div class="flex items-center justify-between">
                 <div>
                     <h3 class="text-xl font-bold text-gray-800">Hasil Scraping</h3>
-                    <!-- <p class="text-gray-600 text-sm" id="resultsDescription">Daftar data yang berhasil diambil</p> -->
+                    {{-- <p class="text-gray-600 text-sm" id="resultsDescription">Daftar data yang berhasil diambil</p> --}}
                 </div>
                 <div class="flex space-x-3">
-                    <!-- Export Dropdown - Letakkan di bagian button actions -->
+                    <!-- Export Dropdown -->
                     <div class="relative" id="exportDropdown">
                         <button id="exportButton" class="px-4 py-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors flex items-center">
                             <i class="fas fa-download mr-2"></i>Export
@@ -434,54 +423,69 @@ https://youtu.be/SHORT_URL"></textarea>
         </div>
     </div>
 </div>
+
+<!-- Modal proses analisis sentimen -->
+<div id="sentimentProcessing" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-2xl p-6 m-4 max-w-sm w-full shadow-2xl">
+    <div class="flex items-center space-x-3">
+      <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+        <i class="fas fa-brain fa-spin text-blue-600 text-xl"></i>
+      </div>
+      <div>
+        <h3 class="text-lg font-bold text-gray-800">Menganalisis Sentimen</h3>
+        <p class="text-gray-600 text-sm">Mohon tunggu sebentar…</p>
+      </div>
+    </div>
+    <div class="mt-4 text-sm text-gray-500" id="sentimentNote">Mengirim data ke server…</div>
+  </div>
+</div>
+
 @endsection
 
 @push('scripts')
 <script>
-    // buat global agar bisa diakses viewItem/deleteItem di luar ready()
+// ✅ PERBAIKAN: Semua variabel global di sini
 window.currentCategory = 'news';
 let currentPage = 1;
 const perPage = 50;
-// filter pencarian YouTube (global)
 const ytFilter = { q: '', from: '', to: '' };
 
-// ✅ TAMBAHAN: Status scraping global
-var isScrapingActive = false;  // 
-var scrapingInterval = null;   // 
+// Status scraping global
+var isScrapingActive = false;
+var scrapingInterval = null;
 
 $(document).ready(function() {
-    // let isScrapingActive = false;
-     window.addEventListener('beforeunload', function (e) {
+
+    // Peringatan saat mau keluar kalau scraping masih jalan
+    window.addEventListener('beforeunload', function (e) {
         if (isScrapingActive) {
             const message = 'Proses scraping masih berjalan. Yakin ingin meninggalkan halaman?';
             e.preventDefault();
-            e.returnValue = message; // Standard untuk semua browser
-            return message; // Untuk beberapa browser lama
+            e.returnValue = message;
+            return message;
         }
     });
- 
+
     // Category Selection
     $('.category-card').on('click', function() {
-        // ✅ TAMBAHAN: Cegah switch kategori saat scraping
+        // Cegah switch kategori saat scraping
         if (isScrapingActive) {
             alert('Tunggu proses scraping selesai terlebih dahulu!');
             return false;
         }
         
-        $('.category-card').removeClass('category-active border-blue-500 bg-blue-50 border-red-500 bg-red-50')
+        $('.category-card').removeClass('category-active border-blue-500 bg-blue-50 border-red-500 bg-red-50');
         
         if ($(this).is('#categoryNews')) {
             window.currentCategory = 'news';
             $(this).addClass('category-active border-blue-500 bg-blue-50');
             $('#newsSection').removeClass('hidden');
             $('#youtubeSection').addClass('hidden');
-            $('#resultsDescription').text('Daftar berita yang berhasil diambil');
         } else {
             window.currentCategory = 'youtube';
             $(this).addClass('category-active border-red-500 bg-red-50');
             $('#newsSection').addClass('hidden');
             $('#youtubeSection').removeClass('hidden');
-            $('#resultsDescription').text('Daftar komentar YouTube yang berhasil diambil');
         }
         
         updateTableHeaders();
@@ -523,7 +527,7 @@ $(document).ready(function() {
         loadResults(1);
     }
 
-    // ✅ Ubah dari 'async function loadResults' menjadi:
+    // Loader utama hasil scraping
     window.loadResults = async function(page = 1) {
         currentPage = page;
 
@@ -558,7 +562,7 @@ $(document).ready(function() {
           if (window.currentCategory === 'youtube') {
             tbodyHtml = rows.map((row, i) => {
               const title   = row.video_title || '-';
-              const author = row.author_name || '-';
+              const author  = row.author_name || '-';
               const url     = row.video_url || '#';
               const comment = (row.comment_text || '').toString();
               const clean   = (row.cleaned_text || '').toString();
@@ -590,7 +594,6 @@ $(document).ready(function() {
                       </button>
                     </div>
                   </td>
-
                 </tr>`;
             }).join('');
           } 
@@ -614,13 +617,23 @@ $(document).ready(function() {
                       <p class="text-gray-400 text-xs mt-1">Status: ${escapeHtml(status)}</p>
                     </div>
                   </td>
-                  <td class="py-4 px-4"><a href="${row.news_url}" target="_blank" class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${escapeHtml(host)}</a></td>
-                  <td class="py-4 px-4"><span class="text-gray-600 text-sm">${escapeHtml(tanggal)}</span></td>
-                  <td class="py-4 px-4"><span class="text-gray-700 text-sm">${escapeHtml(speaker)}</span></td>
+                  <td class="py-4 px-4">
+                    <a href="${row.news_url}" target="_blank" class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${escapeHtml(host)}</a>
+                  </td>
+                  <td class="py-4 px-4">
+                    <span class="text-gray-600 text-sm">${escapeHtml(tanggal)}</span>
+                  </td>
+                  <td class="py-4 px-4">
+                    <span class="text-gray-700 text-sm">${escapeHtml(speaker)}</span>
+                  </td>
                   <td class="py-4 px-4">
                     <div class="flex space-x-2">
-                      <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="viewItem(${row.id}, 'news')"><i class="fas fa-eye"></i></button>
-                      <button type="button" class="text-red-600 hover:text-red-800 text-sm" onclick="deleteItem(${row.id})"><i class="fas fa-trash"></i></button>
+                      <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="viewItem(${row.id}, 'news')">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button type="button" class="text-red-600 hover:text-red-800 text-sm" onclick="deleteItem(${row.id})">
+                        <i class="fas fa-trash"></i>
+                      </button>
                     </div>
                   </td>
                 </tr>`;
@@ -633,47 +646,44 @@ $(document).ready(function() {
           console.error(e);
           $('#dynamicTableBody').html(`<tr><td colspan="7" class="py-6 text-center text-red-600">Gagal memuat data</td></tr>`);
         }
-    }; // ✅ Tutup window.loadResults
-
+    }; // end window.loadResults
 
     function renderPagination(meta) {
-    const prevDisabled = meta.current_page <= 1 ? 'disabled opacity-50' : '';
-    const nextDisabled = meta.current_page >= meta.last_page ? 'disabled opacity-50' : '';
+        const prevDisabled = meta.current_page <= 1 ? 'disabled opacity-50' : '';
+        const nextDisabled = meta.current_page >= meta.last_page ? 'disabled opacity-50' : '';
 
-    const html = `
-        <button class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 ${prevDisabled}"
-                data-page="${meta.current_page - 1}">
-        <i class="fas fa-chevron-left"></i>
-        </button>
-        <button class="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm">${meta.current_page}</button>
-        <button class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 ${nextDisabled}"
-                data-page="${meta.current_page + 1}">
-        <i class="fas fa-chevron-right"></i>
-        </button>
-    `;
+        const html = `
+            <button class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 ${prevDisabled}"
+                    data-page="${meta.current_page - 1}">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm">${meta.current_page}</button>
+            <button class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 ${nextDisabled}"
+                    data-page="${meta.current_page + 1}">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        `;
 
-    $('#paginationControls').html(html);
+        $('#paginationControls').html(html);
     }
 
-    // delegasi klik
+    // delegasi klik pagination
     $(document).on('click', '#paginationControls button[data-page]', function () {
-    const to = parseInt($(this).attr('data-page'), 10);
-    if (!isNaN(to) && to > 0) { 
-        loadResults(to);
-        // scroll ke atas tabel biar nyaman
-        $('html,body').animate({ scrollTop: $('#resultsSection').offset().top - 80 }, 200);
-    }
+        const to = parseInt($(this).attr('data-page'), 10);
+        if (!isNaN(to) && to > 0) { 
+            loadResults(to);
+            $('html,body').animate({ scrollTop: $('#resultsSection').offset().top - 80 }, 200);
+        }
     });
 
-function debounce(fn, delay = 350) {
-  let t;
-  return function (...args) {
-    const ctx = this;                // simpan 'this' dari event handler
-    clearTimeout(t);
-    t = setTimeout(() => fn.apply(ctx, args), delay); // panggil dengan konteks asli
-  };
-}
-
+    function debounce(fn, delay = 350) {
+      let t;
+      return function (...args) {
+        const ctx = this;
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(ctx, args), delay);
+      };
+    }
 
     window.escapeHtml = function (s) {
         return String(s).replace(/[&<>"']/g, m => ({
@@ -682,294 +692,141 @@ function debounce(fn, delay = 350) {
     };
 
     function highlight(text, q) {
-  if (!q) return escapeHtml(String(text ?? ''));
-  const esc = escapeHtml(String(text ?? ''));
-  // buat regex case-insensitive, escape karakter spesial di q
-  const safe = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp(safe, 'gi');
-  return esc.replace(re, (m) => `<mark class="bg-yellow-200">${m}</mark>`);
-}
+        if (!q) return escapeHtml(String(text ?? ''));
+        const esc = escapeHtml(String(text ?? ''));
+        const safe = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp(safe, 'gi');
+        return esc.replace(re, (m) => `<mark class="bg-yellow-200">${m}</mark>`);
+    }
 
-
-    // // Load sample data based on category
-    // function loadSampleData() {
-    //     let tbody = '';
-    //     $('#totalCount').text(currentCategory === 'news' ? '10' : '15');
-        
-    //     if (currentCategory === 'news') {
-    //         for (let i = 1; i <= 10; i++) {
-    //             tbody += `
-    //                 <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-    //                     <td class="py-4 px-2">
-    //                         <input type="checkbox" name="selected_items[]" value="${i}" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-    //                     </td>
-    //                     <td class="py-4 px-4">
-    //                         <div>
-    //                             <h4 class="font-medium text-gray-800 mb-1">Berita Sample ${i} - Lorem ipsum dolor sit amet</h4>
-    //                             <p class="text-gray-600 text-sm">Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>
-    //                         </div>
-    //                     </td>
-    //                     <td class="py-4 px-4">
-    //                         <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">detik.com</span>
-    //                     </td>
-    //                     <td class="py-4 px-4">
-    //                         <span class="text-gray-600 text-sm">${new Date(Date.now() - i * 24 * 60 * 60 * 1000).toLocaleDateString('id-ID')}</span>
-    //                     </td>
-    //                     <td class="py-4 px-4">
-    //                         <span class="text-gray-700 text-sm">@user${i}</span>
-    //                     </td>
-    //                     <td class="py-4 px-4">
-    //                         <div class="flex space-x-2">
-    //                             <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="viewItem(${i}, 'news')">
-    //                                 <i class="fas fa-eye"></i>
-    //                             </button>
-    //                             <button class="text-red-600 hover:text-red-800 text-sm" onclick="deleteItem(${i})">
-    //                                 <i class="fas fa-trash"></i>
-    //                             </button>
-    //                         </div>
-    //                     </td>
-    //                 </tr>
-    //             `;
-    //         }
-    //     } else {
-    //         for (let i = 1; i <= 15; i++) {
-    //             tbody += `
-    //                 <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-    //                     <td class="py-4 px-2">
-    //                         <input type="checkbox" name="selected_items[]" value="${i}" class="rounded border-gray-300 text-red-600 focus:ring-red-500">
-    //                     </td>
-    //                     <td class="py-4 px-4">
-    //                         <div class="max-w-md">
-    //                             <p class="text-gray-800 text-sm">Komentar YouTube sample ${i}: Videonya bagus banget! Sangat membantu untuk belajar...</p>
-    //                         </div>
-    //                     </td>
-    //                     <td class="py-4 px-4">
-    //                         <div class="max-w-md">
-    //                             <p class="text-gray-800 text-sm">Komentar YouTube sample ${i}: Videonya bagus banget! Sangat membantu untuk belajar...</p>
-    //                         </div>
-    //                     </td>
-    //                     <td class="py-4 px-4">
-    //                         <div class="max-w-md">
-    //                             <p class="text-gray-800 text-sm">Komentar YouTube sample ${i}: Videonya bagus banget! Sangat membantu untuk belajar...</p>
-    //                         </div>
-    //                     </td>
-    //                     <td class="py-4 px-4">
-    //                         <div class="max-w-xs">
-    //                             <p class="font-medium text-gray-800 text-sm">Tutorial ${i}</p>
-    //                             <p class="text-gray-600 text-xs">Channel Name</p>
-    //                         </div>
-    //                     </td>
-    //                     <td class="py-4 px-4">
-    //                         <span class="text-gray-700 text-sm">@user${i}</span>
-    //                     </td>
-    //                     <td class="py-4 px-4">
-    //                         <span class="text-gray-600 text-sm">${new Date(Date.now() - i * 60 * 60 * 1000).toLocaleDateString('id-ID')}</span>
-    //                     </td>
-    //                     <td class="py-4 px-4">
-    //                         <div class="flex space-x-2">
-    //                             <button class="text-red-600 hover:text-red-800 text-sm" onclick="viewItem(${i}, 'youtube')">
-    //                                 <i class="fas fa-eye"></i>
-    //                             </button>
-    //                             <button class="text-red-600 hover:text-red-800 text-sm" onclick="deleteItem(${i})">
-    //                                 <i class="fas fa-trash"></i>
-    //                             </button>
-    //                         </div>
-    //                     </td>
-    //                 </tr>
-    //             `;
-    //         }
-    //     }
-    //     $('#dynamicTableBody').html(tbody);
-    //     $('#showingRange').text(`1-${currentCategory === 'news' ? '10' : '15'}`);
-    //     $('#totalItems').text(currentCategory === 'news' ? '10' : '15');
-    // }
-    
-    // Initialize with news data
+    // Init awal
     updateTableHeaders();
-    
-    // News Scraping Forms
-    //$('#linkScrapingForm').on('submit', function(e) {
-        //e.preventDefault();
-        //const links = $('#newsLinks').val().trim();
-        
-        //if (!links) {
-           // alert('Masukkan minimal satu link berita!');
-            //return;
-        //}
-        
-        //startScraping('news_links', { links: links });
-    //});
-    
-    // $('#searchScrapingForm').on('submit', function(e) {
-    //     e.preventDefault();
-    //     const formData = {
-    //         source: $('input[name="source"]').val(),
-    //         keywords: $('input[name="keywords"]').val(),
-    //         date_from: $('input[name="date_from"]').val(),
-    //         date_to: $('input[name="date_to"]').val()
-        // };
-        
-        // if (!formData.keywords) {
-        //     alert('Masukkan kata kunci pencarian!');
-        //     return;
-        // }
-        
-    //     startScraping('news_search', formData);
-    // });
 
+    // FORM SEARCH NEWS (filter di DB & highlight)
     $('#searchScrapingForm').on('submit', async function (e) {
-    e.preventDefault();
+        e.preventDefault();
 
-    const q     = ($('input[name="keywords"]').val() || '').toString().trim();
-    const from  = $('input[name="date_from"]').val() || '';
-    const to    = $('input[name="date_to"]').val() || '';
+        const q     = ($('input[name="keywords"]').val() || '').toString().trim();
+        const from  = $('input[name="date_from"]').val() || '';
+        const to    = $('input[name="date_to"]').val() || '';
 
-    console.log('SUBMIT CARI =>', { q, from, to });
+        // kalau semua kosong -> balik mode normal
+        if (q === '' && from === '' && to === '') {
+            $('#paginationControls').show();
+            await loadResults(1);
+            return;
+        }
 
-    // Kalau semua kosong, balik ke mode normal (browse)
-    if (q === '' && from === '' && to === '') {
-        $('#paginationControls').show();
-        await loadResults(1);
-        return;
-    }
+        $('#paginationControls').hide();
 
-    $('#paginationControls').hide();
+        try {
+            const params = new URLSearchParams();
+            if (q)    params.set('q', q);
+            if (from) params.set('date_from', from);
+            if (to)   params.set('date_to', to);
 
-    try {
-        const params = new URLSearchParams();
-        if (q)    params.set('q', q);
-        if (from) params.set('date_from', from);
-        if (to)   params.set('date_to', to);
+            const url = "{{ route('scraping.search') }}" + '?' + params.toString();
+            const res = await fetch(url, { headers: { "Accept": "application/json" }});
+            const json = await res.json();
 
-        const url = "{{ route('scraping.search') }}" + '?' + params.toString();
-        const res = await fetch(url, { headers: { "Accept": "application/json" }});
-        const json = await res.json();
+            const rows  = Array.isArray(json.data) ? json.data : [];
+            const total = (json.meta && typeof json.meta.total === 'number') ? json.meta.total : rows.length;
 
-        console.log('HASIL CARI:', json);
+            $('#totalCount').text(total);
+            $('#showingRange').text(rows.length ? `1-${rows.length}` : '0-0');
+            $('#totalItems').text(total);
 
-        const rows  = Array.isArray(json.data) ? json.data : [];
-        const total = (json.meta && typeof json.meta.total === 'number') ? json.meta.total : rows.length;
+            const tbodyHtml = rows.map((row, i) => {
+                const host    = (() => { try { return new URL(row.news_url).host } catch { return row.news_source || '-' }})();
+                const kutipan = (row.original_text || '').toString().slice(0, 160);
+                const tanggal = row.published_at || '-';
+                const speaker = row.speaker || '-';
+                const status  = row.processing_status || '-';
 
-        $('#totalCount').text(total);
-        $('#showingRange').text(rows.length ? `1-${rows.length}` : '0-0');
-        $('#totalItems').text(total);
+                return `
+                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td class="py-4 px-2">
+                            <input type="checkbox" name="selected_items[]" value="${row.id || i}"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        </td>
+                        <td class="py-4 px-4">
+                            <div>
+                                <p class="text-gray-800 text-sm">${highlight(kutipan, q)}</p>
+                                ${row.context ? `<p class="text-gray-500 text-xs mt-1">${highlight(row.context, q)}</p>` : ''}
+                                <p class="text-gray-400 text-xs mt-1">Status: ${escapeHtml(status)}</p>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <a href="${row.news_url}" target="_blank"
+                                class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                ${highlight(host, q)}
+                            </a>
+                        </td>
+                        <td class="py-4 px-4"><span class="text-gray-600 text-sm">${escapeHtml(tanggal)}</span></td>
+                        <td class="py-4 px-4"><span class="text-gray-700 text-sm">${highlight(speaker, q)}</span></td>
+                        <td class="py-4 px-4">
+                            <div class="flex space-x-2">
+                                <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="viewItem(${row.id || i}, 'news')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="text-red-600 hover:text-red-800 text-sm" onclick="deleteItem(${row.id})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>`;
+            }).join('');
 
-        const tbodyHtml = rows.map((row, i) => {
-        const host    = (() => { try { return new URL(row.news_url).host } catch { return row.news_source || '-' }})();
-        const kutipan = (row.original_text || '').toString().slice(0, 160);
-        const tanggal = row.published_at || '-';
-        const speaker = row.speaker || '-';
-        const status  = row.processing_status || '-';
+            $('#dynamicTableBody').html(
+                tbodyHtml || `<tr><td colspan="6" class="py-6 text-center text-gray-500">
+                    Tidak ada hasil untuk "${escapeHtml(q)}"
+                </td></tr>`
+            );
 
-        return `
-            <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-            <td class="py-4 px-2">
-                <input type="checkbox" name="selected_items[]" value="${row.id || i}"
-                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-            </td>
-            <td class="py-4 px-4">
-                <div>
-                <p class="text-gray-800 text-sm">${highlight(kutipan, q)}</p>
-                ${row.context ? `<p class="text-gray-500 text-xs mt-1">${highlight(row.context, q)}</p>` : ''}
-                <p class="text-gray-400 text-xs mt-1">Status: ${escapeHtml(status)}</p>
-                </div>
-            </td>
-            <td class="py-4 px-4">
-                <a href="${row.news_url}" target="_blank"
-                class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                ${highlight(host, q)}
-                </a>
-            </td>
-            <td class="py-4 px-4"><span class="text-gray-600 text-sm">${escapeHtml(tanggal)}</span></td>
-            <td class="py-4 px-4"><span class="text-gray-700 text-sm">${highlight(speaker, q)}</span></td>
-            <td class="py-4 px-4">
-                <div class="flex space-x-2">
-                <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="viewItem(${row.id || i}, 'news')">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button type="button" class="text-red-600 hover:text-red-800 text-sm" onclick="deleteItem(${row.id})">
-                    <i class="fas fa-trash"></i>
-                </button>
-                </div>
-            </td>
-            </tr>`;
-        }).join('');
-
-        $('#dynamicTableBody').html(
-        tbodyHtml || `<tr><td colspan="6" class="py-6 text-center text-gray-500">
-            Tidak ada hasil untuk "${escapeHtml(q)}"
-        </td></tr>`
-        );
-
-    } catch (err) {
-        console.error(err);
-        $('#dynamicTableBody').html(
-        `<tr><td colspan="6" class="py-6 text-center text-red-600">Gagal memuat hasil pencarian</td></tr>`
-        );
-    }
+        } catch (err) {
+            console.error(err);
+            $('#dynamicTableBody').html(
+                `<tr><td colspan="6" class="py-6 text-center text-red-600">Gagal memuat hasil pencarian</td></tr>`
+            );
+        }
     });
 
-    // YouTube Scraping Forms
-    // $('#youtubeUrlForm').on('submit', function(e) {
-    //     e.preventDefault();
-    //     const urls = $('#youtubeUrls').val().trim();
-    //     const scrapeTypes = $('input[name="scrape_types[]"]:checked').map(function() {
-    //         return $(this).val();
-    //     }).get();
-        
-    //     if (!urls) {
-    //         alert('Masukkan minimal satu URL YouTube!');
-    //         return;
-    //     }
-        
-    //     if (scrapeTypes.length === 0) {
-    //         alert('Pilih minimal satu jenis data untuk di-scrape!');
-    //         return;
-    //     }
-        
-    //     startScraping('youtube_urls', { urls: urls, types: scrapeTypes });
-    // });
-    // --- STEP 2: helper tanggal untuk preset YouTube ---
-  // helper konversi preset waktu → rentang tanggal (YYYY-MM-DD)
-function pad2(n){ return String(n).padStart(2,'0'); }
-function formatYMD(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
-function computeUploadRange(key) {
-  if (!key) return { from:'', to:'' };           // Semua Waktu
-  const now = new Date();
-  if (key === 'hour' || key === 'today') {
-    const ymd = formatYMD(now); return { from: ymd, to: ymd };
-  }
-  if (key === 'week')  { const f=new Date(now); f.setDate(now.getDate()-7);  return { from:formatYMD(f), to:formatYMD(now) }; }
-  if (key === 'month') { const f=new Date(now); f.setMonth(now.getMonth()-1); return { from:formatYMD(f), to:formatYMD(now) }; }
-  if (key === 'year')  { const f=new Date(now); f.setFullYear(now.getFullYear()-1); return { from:formatYMD(f), to:formatYMD(now) }; }
-  return { from:'', to:'' };
-}
+    // Helper tanggal YT
+    function pad2(n){ return String(n).padStart(2,'0'); }
+    function formatYMD(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+    function computeUploadRange(key) {
+      if (!key) return { from:'', to:'' };
+      const now = new Date();
+      if (key === 'hour' || key === 'today') {
+        const ymd = formatYMD(now); return { from: ymd, to: ymd };
+      }
+      if (key === 'week')  { const f=new Date(now); f.setDate(now.getDate()-7);  return { from:formatYMD(f), to:formatYMD(now) }; }
+      if (key === 'month') { const f=new Date(now); f.setMonth(now.getMonth()-1); return { from:formatYMD(f), to:formatYMD(now) }; }
+      if (key === 'year')  { const f=new Date(now); f.setFullYear(now.getFullYear()-1); return { from:formatYMD(f), to:formatYMD(now) }; }
+      return { from:'', to:'' };
+    }
 
-// handler baru: cari komentar YouTube dengan preset waktu
-$('#youtubeSearchForm').on('submit', async function (e) {
-  e.preventDefault();
+    // Cari komentar YouTube dengan preset
+    $('#youtubeSearchForm').on('submit', async function (e) {
+      e.preventDefault();
 
-  const q      = ($('input[name="search_query"]').val() || '').trim();
-  const preset = ($('select[name="upload_date"]').val() || '').trim();
+      const q      = ($('input[name="search_query"]').val() || '').trim();
+      const preset = ($('select[name="upload_date"]').val() || '').trim();
 
-  if (!q) { alert('Masukkan kata kunci pencarian!'); return; }
+      if (!q) { alert('Masukkan kata kunci pencarian!'); return; }
 
-  const { from, to } = computeUploadRange(preset);
+      const { from, to } = computeUploadRange(preset);
 
-  // simpan ke state filter
-  ytFilter.q    = q;
-  ytFilter.from = from;
-  ytFilter.to   = to;
+      ytFilter.q    = q;
+      ytFilter.from = from;
+      ytFilter.to   = to;
 
-  // pastikan tab kategori di YouTube
-  if (window.currentCategory !== 'youtube') $('#categoryYoutube').click();
+      if (window.currentCategory !== 'youtube') $('#categoryYoutube').click();
 
-  // tampilkan hasil ke tabel
-  $('#paginationControls').show();
-  await loadResults(1);
-});
+      $('#paginationControls').show();
+      await loadResults(1);
+    });
 
-    
     // Clear buttons
     $('#clearLinks').on('click', function() {
         $('#newsLinks').val('');
@@ -979,240 +836,148 @@ $('#youtubeSearchForm').on('submit', async function (e) {
         $('#youtubeUrls').val('');
     });
     
-    // Start Scraping
-    function startScraping(type, data) {
-        if (isScrapingActive) return;
-        
-        isScrapingActive = true;
-        $('#scrapingProgress').removeClass('hidden');
-        $('button[type="submit"]').prop('disabled', true);
-        
-        // Simulate scraping progress
-        let progress = 0;
-        let total = 0;
-        let taskName = '';
-        
-        switch(type) {
-            case 'news_links':
-                total = data.links.split('\n').length;
-                taskName = 'berita';
-                break;
-            case 'news_search':
-                total = 10;
-                taskName = 'berita';
-                break;
-            case 'youtube_urls':
-                total = data.urls.split('\n').length;
-                taskName = 'video YouTube';
-                break;
-            case 'youtube_search':
-                total = parseInt(data.video_limit);
-                taskName = 'video YouTube';
-                break;
-        }
-        
-        const interval = setInterval(() => {
-            progress++;
-            const percentage = (progress / total) * 100;
-            
-            $('#progressBar').css('width', percentage + '%');
-            $('#progressText').text(progress + '/' + total);
-            $('#currentTask').text(`Mengambil ${taskName} ${progress}...`);
-            
-            if (progress >= total) {
-                clearInterval(interval);
-                completeScraping();
-            }
-        }, 500);
-    }
-    
-    // Complete Scraping
-    function completeScraping() {
-        isScrapingActive = false;
-        $('#currentTask').text('Scraping selesai!');
-        $('button[type="submit"]').prop('disabled', false);
-        
-        setTimeout(() => {
-            $('#scrapingProgress').addClass('hidden');
-            $('#progressBar').css('width', '0%');
-            $('#progressText').text('0/0');
-            loadResults(); // Reload data to show new results
-        }, 2000);
-    }
-    
-    // Stop Scraping
-    $('#stopScraping').on('click', function() {
-        isScrapingActive = false;
-        $('#scrapingProgress').addClass('hidden');
-        $('button[type="submit"]').prop('disabled', false);
-    });
-    
-    // Master Checkbox
+    // Master Checkbox & Select All
     $(document).on('change', '#masterCheckbox', function() {
         $('input[name="selected_items[]"]').prop('checked', this.checked);
     });
     
-    // Select All
     $('#selectAll').on('click', function() {
         $('input[name="selected_items[]"]').prop('checked', true);
         $('#masterCheckbox').prop('checked', true);
     });
-    
-    // Analyze Selected
-    $('#analyzeSelected').on('click', function() {
-        const selected = $('input[name="selected_items[]"]:checked').length;
-        if (selected === 0) {
-            alert('Pilih minimal satu item untuk dianalisis!');
-            return;
-        }
-        
-        const itemType = window.currentCategory === 'news' ? 'berita' : 'komentar';
-        if (confirm(`Analisis ${selected} ${itemType} yang dipilih?`)) {
-            window.location.href = '{{ route("sentiment") }}';
-        }
+
+    // cegah Enter di field cari memicu submit
+    $(document).on('keydown', '#searchFilter', function (e) {
+      if (e.key === 'Enter') e.preventDefault();
     });
-    
 
-// cegah Enter di field cari dari submit/refresh form
-$(document).on('keydown', '#searchFilter', function (e) {
-  if (e.key === 'Enter') e.preventDefault();
-});
+    // pencarian live (news & youtube)
+    $(document).on('input', '#searchFilter', debounce(async function () {
+      const q = ($(this).val() || '').toString().trim();
 
-// handler cari: delegated + input event + reset saat kosong (NEWS/YOUTUBE)
-$(document).on('input', '#searchFilter', debounce(async function () {
-  const q = ($(this).val() || '').toString().trim();
+      if (q === '') {
+        $('#paginationControls').show();
+        await loadResults(1);
+        return;
+      }
 
-  // jika kosong -> kembali ke mode normal (pakai pagination)
-  if (q === '') {
-    $('#paginationControls').show();
-    await loadResults(1);
-    return;
-  }
+      $('#paginationControls').hide();
 
-  $('#paginationControls').hide();
+      try {
+        let url;
+        if (window.currentCategory === 'youtube') {
+          const params = new URLSearchParams({ q, page: 1, per_page: perPage });
+          url = "{{ route('scraping.youtube.results') }}" + "?" + params.toString();
+        } else {
+          url = "{{ route('scraping.search') }}" + `?q=${encodeURIComponent(q)}`;
+        }
 
-  try {
-    let url;
-    if (window.currentCategory === 'youtube') {
-      // endpoint youtube (mendukung q, page, per_page)
-      const params = new URLSearchParams({ q, page: 1, per_page: perPage });
-      url = "{{ route('scraping.youtube.results') }}" + "?" + params.toString();
-    } else {
-      // endpoint news
-      url = "{{ route('scraping.search') }}" + `?q=${encodeURIComponent(q)}`;
-    }
+        const res  = await fetch(url, { headers: { "Accept": "application/json" }});
+        const json = await res.json();
+        const rows = Array.isArray(json.data) ? json.data : [];
+        const total = (json.meta && typeof json.meta.total === 'number') ? json.meta.total : rows.length;
 
-    const res  = await fetch(url, { headers: { "Accept": "application/json" }});
-    const json = await res.json();
-    const rows = Array.isArray(json.data) ? json.data : [];
-    const total = (json.meta && typeof json.meta.total === 'number') ? json.meta.total : rows.length;
+        $('#totalCount').text(total);
+        $('#showingRange').text(rows.length ? `1-${rows.length}` : '0-0');
+        $('#totalItems').text(total);
 
-    $('#totalCount').text(total);
-    $('#showingRange').text(rows.length ? `1-${rows.length}` : '0-0');
-    $('#totalItems').text(total);
+        let tbodyHtml = '';
 
-    let tbodyHtml = '';
+        if (window.currentCategory === 'youtube') {
+          tbodyHtml = rows.map((row, i) => {
+            const comment = (row.comment_text || '').toString();
+            const clean   = (row.cleaned_text || '').toString();
+            const url     = row.video_url || '#';
+            const title   = row.video_title || '-';
+            const author  = row.author_name   || '-';
+            const tanggal = row.published_at || '-';
 
-    if (window.currentCategory === 'youtube') {
-      // renderer YOUTUBE saat pencarian
-      tbodyHtml = rows.map((row, i) => {
-        const comment = (row.comment_text || '').toString();
-        const clean   = (row.cleaned_text || '').toString();
-        const url     = row.video_url || '#';
-        const title   = row.video_title || '-';
-        const author  = row.author_name   || '-';   // <- pakai author_name
-        const tanggal = row.published_at || '-';
+            return `
+              <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <td class="py-4 px-2">
+                  <input type="checkbox" name="selected_items[]" value="${row.id || i}" class="rounded border-gray-300 text-red-600 focus:ring-red-500">
+                </td>
+                <td class="py-4 px-4"><div class="text-sm text-gray-800">${highlight(comment.slice(0,200), q)}</div></td>
+                <td class="py-4 px-4">
+                  <div class="text-sm text-gray-800">
+                    ${ clean ? escapeHtml(clean.slice(0,200)) : '<span class="text-gray-400">-</span>' }
+                  </div>
+                </td>
+                <td class="py-4 px-4"><a href="${url}" target="_blank" class="text-sm text-blue-700 underline">${escapeHtml(title)}</a></td>
+                <td class="py-4 px-4"><span class="text-sm text-gray-700">${escapeHtml(author)}</span></td>
+                <td class="py-4 px-4"><span class="text-sm text-gray-600">${escapeHtml(tanggal)}</span></td>
+                <td class="py-4 px-4">
+                  <div class="flex space-x-2">
+                    <button class="text-red-600 hover:text-red-800 text-sm" onclick="viewItem(${row.id}, 'youtube')"><i class="fas fa-eye"></i></button>
+                    <button type="button" class="text-red-600 hover:text-red-800 text-sm" onclick="deleteItem(${row.id})"><i class="fas fa-trash"></i></button>
+                  </div>
+                </td>
+              </tr>`;
+          }).join('');
+        } else {
+          tbodyHtml = rows.map((row, i) => {
+            const host    = (() => { try { return new URL(row.news_url).host } catch { return row.news_source || '-' }})();
+            const kutipan = (row.original_text || '').toString().slice(0, 160);
+            const tanggal = row.published_at || '-';
+            const speaker = row.speaker || '-';
+            const status  = row.processing_status || '-';
 
-        return `
-          <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-            <td class="py-4 px-2">
-              <input type="checkbox" name="selected_items[]" value="${row.id || i}" class="rounded border-gray-300 text-red-600 focus:ring-red-500">
-            </td>
-            <td class="py-4 px-4"><div class="text-sm text-gray-800">${highlight(comment.slice(0,200), q)}</div></td>
-            <td class="py-4 px-4">
-              <div class="text-sm text-gray-800">
-                ${ clean ? escapeHtml(clean.slice(0,200)) : '<span class="text-gray-400">-</span>' }
-              </div>
-            </td>
-            <td class="py-4 px-4"><a href="${url}" target="_blank" class="text-sm text-blue-700 underline">${escapeHtml(title)}</a></td>
-            <td class="py-4 px-4"><span class="text-sm text-gray-700">${escapeHtml(author)}</span></td>
-            <td class="py-4 px-4"><span class="text-sm text-gray-600">${escapeHtml(tanggal)}</span></td>
-            <td class="py-4 px-4">
-              <div class="flex space-x-2">
-                <button class="text-red-600 hover:text-red-800 text-sm" onclick="/* TODO: detail youtube */"><i class="fas fa-eye"></i></button>
-                <!-- TODO: buat delete youtube -->
-              </div>
-            </td>
-          </tr>`;
-      }).join('');
-    } else {
-      // renderer NEWS (tetap milikmu seperti semula, pakai highlight)
-      tbodyHtml = rows.map((row, i) => {
-        const host    = (() => { try { return new URL(row.news_url).host } catch { return row.news_source || '-' }})();
-        const kutipan = (row.original_text || '').toString().slice(0, 160);
-        const tanggal = row.published_at || '-';
-        const speaker = row.speaker || '-';
-        const status  = row.processing_status || '-';
+            return `
+              <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <td class="py-4 px-2">
+                  <input type="checkbox" name="selected_items[]" value="${row.id || i}" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                </td>
+                <td class="py-4 px-4">
+                  <div>
+                    <p class="text-gray-800 text-sm">${highlight(kutipan, q)}</p>
+                    ${row.context ? `<p class="text-gray-500 text-xs mt-1">${highlight(row.context, q)}</p>` : ''}
+                    <p class="text-gray-400 text-xs mt-1">Status: ${escapeHtml(status)}</p>
+                  </div>
+                </td>
+                <td class="py-4 px-4"><a href="${row.news_url}" target="_blank" class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${highlight(host, q)}</a></td>
+                <td class="py-4 px-4"><span class="text-gray-600 text-sm">${escapeHtml(tanggal)}</span></td>
+                <td class="py-4 px-4"><span class="text-gray-700 text-sm">${highlight(speaker, q)}</span></td>
+                <td class="py-4 px-4">
+                  <div class="flex space-x-2">
+                    <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="viewItem(${row.id}, 'news')"><i class="fas fa-eye"></i></button>
+                    <button type="button" class="text-red-600 hover:text-red-800 text-sm" onclick="deleteItem(${row.id})"><i class="fas fa-trash"></i></button>
+                  </div>
+                </td>
+              </tr>`;
+          }).join('');
+        }
 
-        return `
-          <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-            <td class="py-4 px-2">
-              <input type="checkbox" name="selected_items[]" value="${row.id || i}" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-            </td>
-            <td class="py-4 px-4">
-              <div>
-                <p class="text-gray-800 text-sm">${highlight(kutipan, q)}</p>
-                ${row.context ? `<p class="text-gray-500 text-xs mt-1">${highlight(row.context, q)}</p>` : ''}
-                <p class="text-gray-400 text-xs mt-1">Status: ${escapeHtml(status)}</p>
-              </div>
-            </td>
-            <td class="py-4 px-4"><a href="${row.news_url}" target="_blank" class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${highlight(host, q)}</a></td>
-            <td class="py-4 px-4"><span class="text-gray-600 text-sm">${escapeHtml(tanggal)}</span></td>
-            <td class="py-4 px-4"><span class="text-gray-700 text-sm">${highlight(speaker, q)}</span></td>
-            <td class="py-4 px-4">
-              <div class="flex space-x-2">
-                <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="viewItem(${row.id || i}, 'news')"><i class="fas fa-eye"></i></button>
-                <button type="button" class="text-red-600 hover:text-red-800 text-sm" onclick="deleteItem(${row.id})"><i class="fas fa-trash"></i></button>
-              </div>
-            </td>
-          </tr>`;
-      }).join('');
-    }
+        $('#dynamicTableBody').html(
+          tbodyHtml || `<tr><td colspan="7" class="py-6 text-center text-gray-500">Tidak ada hasil untuk "${escapeHtml(q)}"</td></tr>`
+        );
 
-    $('#dynamicTableBody').html(
-      tbodyHtml || `<tr><td colspan="7" class="py-6 text-center text-gray-500">Tidak ada hasil untuk "${escapeHtml(q)}"</td></tr>`
-    );
+      } catch (e) {
+        console.error(e);
+        $('#dynamicTableBody').html(`<tr><td colspan="7" class="py-6 text-center text-red-600">Gagal memuat hasil pencarian</td></tr>`);
+      }
+    }, 350));
 
-  } catch (e) {
-    console.error(e);
-    $('#dynamicTableBody').html(`<tr><td colspan="7" class="py-6 text-center text-red-600">Gagal memuat hasil pencarian</td></tr>`);
-  }
-}, 350));
-
-
-
-    
-    // Source Filter
+    // Source Filter (client-side sederhana)
     $('#sourceFilter').on('change', function() {
         const value = $(this).val();
         if (value === '') {
             $('#dynamicTableBody tr').show();
         } else {
-            $('#dynamicTableBody tr').filter(function() {
+            $('#dynamicTableBody tr').each(function() {
                 $(this).toggle($(this).text().indexOf(value) > -1);
             });
         }
     });
-});
 
-// View Item Function
-// View Item Function (fetch detail dari backend)
+}); // end document.ready
+
+// =========================
+// View Item (detail modal)
+// =========================
 async function viewItem(id, type) {
   try {
     if (type === 'news') {
-      // ⬇️ generate URL dari named route scraping.item
       const url = "{{ route('scraping.item', ['id' => '__ID__']) }}".replace('__ID__', encodeURIComponent(id));
-
       const res = await fetch(url, { headers: { "Accept": "application/json" }});
       if (!res.ok) { alert('Gagal memuat detail item.'); return; }
       const json = await res.json();
@@ -1248,7 +1013,6 @@ async function viewItem(id, type) {
               <span><i class="fas fa-globe mr-1"></i>${escapeHtml(source)}</span>
               <span><i class="fas fa-user mr-1"></i>${escapeHtml(speaker)}</span>
             </div>
-            <div class="text-xs text-gray-500">Status: ${escapeHtml(d.status || '-')}</div>
           </div>
 
           <div class="bg-white border rounded-lg p-4">
@@ -1335,20 +1099,18 @@ async function viewItem(id, type) {
         </div>
       `;
 
-
       $('#modalTitle').text('Detail Komentar');
       $('#modalContent').html(modalHtml);
       $('#dynamicModal').removeClass('hidden').addClass('flex');
       return;
     }
-    // ... (bagian youtube tetap seperti sebelumnya)
   } catch (e) {
     console.error(e);
     alert('Gagal memuat detail item.');
   }
 }
 
-//DELETE ITEM
+// DELETE satu item (news/youtube sesuai kategori aktif)
 async function deleteItem(id) {
   if (!confirm('Hapus item ini?')) return;
 
@@ -1364,11 +1126,6 @@ async function deleteItem(id) {
     : "{{ route('scraping.destroy', ['id' => '__ID__']) }}";
   const url = urlTpl.replace('__ID__', encodeURIComponent(id));
 
-  // 🔍 DEBUG: Log URL yang digunakan
-  console.log('DELETE URL:', url);
-  console.log('Category:', window.currentCategory);
-  console.log('ID:', id);
-
   try {
     const res = await fetch(url, {
       method: 'DELETE',
@@ -1381,72 +1138,27 @@ async function deleteItem(id) {
       }
     });
 
-    // 🔍 DEBUG: Log response
-    console.log('Response status:', res.status);
-    console.log('Response OK:', res.ok);
-
-    // Ambil text dulu untuk debugging
     const textResponse = await res.text();
-    console.log('Response body:', textResponse);
-
-    // Coba parse JSON
     let json = null;
     if (textResponse) {
-      try {
-        json = JSON.parse(textResponse);
-        console.log('Parsed JSON:', json);
-      } catch (e) {
-        console.error('Gagal parse JSON:', e);
-        console.log('Raw response:', textResponse.substring(0, 200));
-      }
+      try { json = JSON.parse(textResponse); } catch {}
     }
 
-    // Cek apakah berhasil
     if (res.ok && (json?.success === true || json === null)) {
-      console.log('✅ Delete berhasil');
       await loadResults(window.currentPage || 1);
       return;
     }
 
-    // Kalau HTTP error
     const errorMsg = json?.message || textResponse.substring(0, 100) || `Error HTTP ${res.status}`;
-    console.error('❌ Delete gagal:', errorMsg);
     alert('Gagal menghapus: ' + errorMsg);
 
   } catch (e) {
-    console.error('❌ Catch error:', e);
-    console.error('Error name:', e.name);
-    console.error('Error message:', e.message);
+    console.error(e);
     alert('Terjadi kesalahan koneksi saat menghapus: ' + e.message);
   }
 }
 
-
-
-async function deleteYoutubeItem(id) {
-  if (!confirm('Hapus komentar YouTube ini?')) return;
-  const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-  const url   = "{{ route('scraping.youtube.destroy', ['id' => '__ID__']) }}"
-                  .replace('__ID__', encodeURIComponent(id));
-
-  try {
-    const res = await fetch(url, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' }});
-    if (!res.ok) { alert('Gagal menghapus.'); return; }
-    const json = await res.json();
-    if (json.success) loadResults(window.currentPage || 1);
-  } catch (e) {
-    console.error(e); alert('Terjadi kesalahan saat menghapus.');
-  }
-}
-
-// Delete Item Function
-// function deleteItem(id) {
-//     const itemType = window.currentCategory === 'news' ? 'berita' : 'komentar';
-//     if (confirm(`Hapus ${itemType} ini?`)) {
-//         alert(`${itemType.charAt(0).toUpperCase() + itemType.slice(1)} berhasil dihapus!`);
-//     }
-// }
-// Bulk delete (news/youtube)
+// Bulk delete
 $(document).on('click', '#deleteSelected', async function () {
   const ids = $('input[name="selected_items[]"]:checked')
     .map(function(){ return parseInt($(this).val(), 10); })
@@ -1491,7 +1203,6 @@ $(document).on('click', '#deleteSelected', async function () {
 
     if (res.ok) {
       await loadResults(window.currentPage || 1);
-      // alert(`${ids.length} item berhasil dihapus`);
       return;
     }
 
@@ -1504,27 +1215,22 @@ $(document).on('click', '#deleteSelected', async function () {
   }
 });
 
-
-// Close Modal Function
+// Close Modal
 function closeDynamicModal() {
     $('#dynamicModal').addClass('hidden').removeClass('flex');
 }
 
 // ============================================
-// PROGRESS BAR MANAGER - TAMBAHKAN DI AKHIR
+// PROGRESS BAR MANAGER (dari master)
 // ============================================
-
-// Object untuk manage progress bar
 const ProgressBar = {
     show() {
-        // ✅ Show modal dengan flex (untuk center alignment)
         $('#scrapingProgress').removeClass('hidden').addClass('flex');
         $('#miniProgress').addClass('hidden');
         isScrapingActive = true;
     },
     
     hide() {
-        // ✅ Hide modal
         $('#scrapingProgress').removeClass('flex').addClass('hidden');
         $('#miniProgress').addClass('hidden');
         this.reset();
@@ -1532,13 +1238,11 @@ const ProgressBar = {
     },
     
     minimize() {
-        // ✅ Minimize ke indicator kecil
         $('#scrapingProgress').removeClass('flex').addClass('hidden');
         $('#miniProgress').removeClass('hidden');
     },
     
     maximize() {
-        // ✅ Restore dari minimize
         $('#scrapingProgress').removeClass('hidden').addClass('flex');
         $('#miniProgress').addClass('hidden');
     },
@@ -1554,12 +1258,9 @@ const ProgressBar = {
     update(current, total, taskName = '') {
         const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
         
-        // ✅ Update main progress bar
         $('#progressBar').css('width', percentage + '%');
         $('#progressPercent').text(percentage + '%');
         $('#progressText').text(`${current}/${total}`);
-        
-        // ✅ Update mini indicator
         $('#miniProgressText').text(`${current}/${total} (${percentage}%)`);
         
         if (taskName) {
@@ -1572,13 +1273,26 @@ const ProgressBar = {
     }
 };
 
+// Handler minimize/maximize progress
+$('#minimizeProgress').on('click', function() {
+    ProgressBar.minimize();
+});
 
-// // Variable untuk tracking status scraping
-// let isScrapingActive = false;
-// let scrapingInterval = null;
+$('#miniProgress').on('click', function() {
+    ProgressBar.maximize();
+});
+
+// Klik backdrop -> shake modal
+$('#scrapingProgress').on('click', function(e) {
+    if (e.target === this) {
+        const modal = $(this).find('.bg-white').first();
+        modal.addClass('animate-shake');
+        setTimeout(() => modal.removeClass('animate-shake'), 500);
+    }
+});
 
 // ============================================
-// UPDATE HANDLER SCRAPING BERITA LINK
+// SUBMIT SCRAPING NEWS (REAL PROGRESS + JOB ID)
 // ============================================
 $('#linkScrapingForm').off('submit').on('submit', async function(e) {
     e.preventDefault();
@@ -1620,17 +1334,9 @@ $('#linkScrapingForm').off('submit').on('submit', async function(e) {
         }
         
         const jobId = result.job_id;
+        if (!jobId) throw new Error('Job ID tidak ditemukan');
         
-        if (!jobId) {
-            throw new Error('Job ID tidak ditemukan');
-        }
-        
-        console.log('✅ Scraping started with job ID:', jobId);
-        
-        // ✅ REAL PROGRESS dengan polling
-        if (scrapingInterval) {
-            clearInterval(scrapingInterval);
-        }
+        if (scrapingInterval) clearInterval(scrapingInterval);
         
         scrapingInterval = setInterval(async () => {
             try {
@@ -1638,21 +1344,16 @@ $('#linkScrapingForm').off('submit').on('submit', async function(e) {
                 const progressRes = await fetch(`${progressUrl}?job_id=${jobId}`);
                 const progressData = await progressRes.json();
                 
-                console.log('Progress:', progressData);
-                
-                // Update progress bar dengan data real dari backend
                 ProgressBar.update(
                     progressData.current,
                     progressData.total,
                     progressData.message
                 );
                 
-                // Cek apakah selesai
                 if (progressData.status === 'completed') {
                     clearInterval(scrapingInterval);
                     scrapingInterval = null;
                     
-                    // Tampilkan hasil akhir
                     ProgressBar.setTask(`✅ Selesai! ${progressData.completed} berhasil, ${progressData.failed} gagal`);
                     
                     setTimeout(() => {
@@ -1663,11 +1364,10 @@ $('#linkScrapingForm').off('submit').on('submit', async function(e) {
                         loadResults(1);
                     }, 2000);
                 }
-                
             } catch (error) {
                 console.error('Error checking progress:', error);
             }
-        }, 1000); // Polling setiap 1 detik
+        }, 1000);
         
     } catch (error) {
         console.error('Error scraping:', error);
@@ -1690,7 +1390,7 @@ $('#linkScrapingForm').off('submit').on('submit', async function(e) {
 });
 
 // ============================================
-// UPDATE HANDLER SCRAPING YOUTUBE
+// SUBMIT SCRAPING YOUTUBE
 // ============================================
 $('#youtubeUrlForm').off('submit').on('submit', async function(e) {
     e.preventDefault();
@@ -1733,7 +1433,6 @@ $('#youtubeUrlForm').off('submit').on('submit', async function(e) {
             }
         });
         
-        // ✅ PERBAIKAN: Check content type
         const contentType = response.headers.get('content-type');
         
         if (!response.ok) {
@@ -1742,7 +1441,6 @@ $('#youtubeUrlForm').off('submit').on('submit', async function(e) {
             throw new Error(`Server error: ${response.status}`);
         }
         
-        // ✅ PERBAIKAN: Pastikan response adalah JSON
         let result;
         if (contentType && contentType.includes('application/json')) {
             result = await response.json();
@@ -1781,27 +1479,153 @@ $('#youtubeUrlForm').off('submit').on('submit', async function(e) {
 });
 
 // ============================================
-// HANDLER STOP BUTTON
+// STOP BUTTON
 // ============================================
 $('#stopScraping').off('click').on('click', function() {
     if (confirm('Hentikan proses scraping?')) {
-        // Clear interval
         if (scrapingInterval) {
             clearInterval(scrapingInterval);
             scrapingInterval = null;
         }
-        
-        // Hide progress bar
         ProgressBar.hide();
         isScrapingActive = false;
-        
-        // Re-enable buttons
         $('#startLinkScraping').prop('disabled', false).html('<i class="fas fa-play mr-2"></i>Mulai Scraping');
         $('#startYoutubeScraping').prop('disabled', false).html('<i class="fas fa-play mr-2"></i>Mulai Scraping');
     }
 });
 
-/// Toggle Export Dropdown
+// ==========================
+// Sentiment Modal helper
+// ==========================
+const SentimentModal = {
+  show(msg='Memproses…'){ 
+    document.getElementById('sentimentNote').textContent = msg;
+    $('#sentimentProcessing').removeClass('hidden').addClass('flex');
+  },
+  set(msg){ document.getElementById('sentimentNote').textContent = msg; },
+  hide(){ $('#sentimentProcessing').removeClass('flex').addClass('hidden'); }
+};
+
+// ==========================
+// ANALISIS SENTIMEN TERPILIH (AJAX ke route scraping.analyze)
+// ==========================
+$('#analyzeSelected').off('click.sentiment').on('click.sentiment', async function(e){
+  e.preventDefault();
+
+  if (typeof isScrapingActive !== 'undefined' && isScrapingActive) {
+    const ok = confirm('Proses scraping masih berjalan. Lanjut analisis sekarang?');
+    if (!ok) return;
+  }
+
+  const ids = $('input[name="selected_items[]"]:checked')
+    .map(function(){ return parseInt($(this).val(),10); })
+    .get()
+    .filter(Number.isInteger);
+
+  if (!ids.length) { alert('Pilih minimal satu item untuk dianalisis!'); return; }
+
+  const type = (window.currentCategory === 'youtube') ? 'youtube' : 'news';
+
+  SentimentModal.show('Mengirim daftar item terpilih…');
+
+  try {
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+    const res = await fetch(`{{ route('scraping.analyze') }}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': token,
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ ids, type })
+    });
+
+    SentimentModal.set('Menunggu hasil dari server…');
+
+    if (!res.ok) {
+      const t = await res.text();
+      throw new Error(t || ('HTTP ' + res.status));
+    }
+    const out = await res.json();
+
+    SentimentModal.set(`Selesai. ${out.analyzed ?? ids.length} item dianalisis.`);
+    setTimeout(()=>{
+      SentimentModal.hide();
+      // tampilkan ringkasan di modal hasil (sekalian pakai dynamicModal)
+      const rows = (out.details || []).slice(0, 10).map(d => `
+        <tr class="border-b border-gray-100">
+          <td class="py-2 px-3 text-xs text-gray-500">${d.id}</td>
+          <td class="py-2 px-3 text-sm">${escapeHtml(d.preview || '')}</td>
+          <td class="py-2 px-3">
+            <span class="px-2 py-1 rounded-full text-xs
+              ${d.label==='positive'?'bg-green-100 text-green-700':
+                d.label==='negative'?'bg-red-100 text-red-700':
+                d.label==='positive-neutral'?'bg-blue-100 text-blue-700':
+                d.label==='negative-neutral'?'bg-orange-100 text-orange-700':
+                'bg-yellow-100 text-yellow-700'}">${escapeHtml(d.label||'-')}</span>
+          </td>
+          <td class="py-2 px-3 text-xs text-gray-600">
+            P:${(d.pos??0).toFixed?.(3)??'-'} /
+            N:${(d.neg??0).toFixed?.(3)??'-'} /
+            U:${(d.neu??0).toFixed?.(3)??'-'}
+          </td>
+        </tr>
+      `).join('');
+
+      const modalHtml = `
+        <div class="space-y-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+              <i class="fas fa-brain text-purple-600"></i>
+            </div>
+            <div>
+              <div class="font-bold text-gray-800">Analisis Selesai</div>
+              <div class="text-sm text-gray-600">${escapeHtml(out.message || '')}</div>
+            </div>
+          </div>
+          <div class="overflow-x-auto border rounded-xl">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-gray-200 bg-gray-50">
+                  <th class="py-2 px-3 text-left text-gray-700">ID</th>
+                  <th class="py-2 px-3 text-left text-gray-700">Preview Teks</th>
+                  <th class="py-2 px-3 text-left text-gray-700">Label</th>
+                  <th class="py-2 px-3 text-left text-gray-700">Skor</th>
+                </tr>
+              </thead>
+              <tbody>${rows || '<tr><td colspan="4" class="py-4 text-center text-gray-500">Tidak ada ringkasan.</td></tr>'}</tbody>
+            </table>
+          </div>
+          <div class="flex gap-3">
+            <a href="{{ route('sentiment') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              <i class="fas fa-table mr-2"></i>Lihat Tabel Analisis
+            </a>
+            <button onclick="closeDynamicModal()" class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">
+              Tutup
+            </button>
+          </div>
+        </div>
+      `;
+      $('#modalTitle').text('Ringkasan Analisis Sentimen');
+      $('#modalContent').html(modalHtml);
+      $('#dynamicModal').removeClass('hidden').addClass('flex');
+
+      try { loadResults(window.currentPage || 1); } catch (_) {}
+    }, 600);
+
+  } catch (err) {
+    console.error(err);
+    SentimentModal.set('Gagal memproses analisis. Coba lagi ya.');
+    setTimeout(()=> SentimentModal.hide(), 1200);
+    alert('Terjadi kesalahan saat analisis: ' + (err.message || err));
+  }
+});
+
+// ==========================
+// EXPORT BUTTON (dari scraping_page)
+// ==========================
+
+// Toggle Export Dropdown
 document.getElementById('exportButton').addEventListener('click', function(e) {
     e.stopPropagation();
     document.getElementById('exportMenu').classList.toggle('hidden');
@@ -1815,26 +1639,22 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Function untuk get selected IDs
+// Ambil selected IDs
 function getSelectedIds() {
     const ids = [];
     document.querySelectorAll('input[name="selected_items[]"]:checked').forEach(checkbox => {
         const value = parseInt(checkbox.value);
-        if (!isNaN(value)) {
-            ids.push(value);
-        }
+        if (!isNaN(value)) ids.push(value);
     });
     return ids;
 }
 
-// Function untuk generate export URL
+// Generate export URL
 function generateExportUrl(baseUrl, category, ids = null) {
     let url = baseUrl + '?category=' + category;
-    
     if (ids && ids.length > 0) {
         url += '&ids=' + encodeURIComponent(JSON.stringify(ids));
     }
-    
     return url;
 }
 
@@ -1892,7 +1712,7 @@ document.getElementById('exportCSVSelected').addEventListener('click', function(
     }
 });
 
-// Update button state based on selection (opsional - untuk visual feedback)
+// Update style export selected (opsional)
 $(document).on('change', 'input[name="selected_items[]"]', function() {
     const selectedCount = $('input[name="selected_items[]"]:checked').length;
     
@@ -1905,6 +1725,7 @@ $(document).on('change', 'input[name="selected_items[]"]', function() {
     }
 });
 </script>
+
 <style>
 #exportMenu {
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);

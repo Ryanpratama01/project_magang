@@ -10,14 +10,16 @@ class NewsArticle extends Model
 {
     use HasFactory;
 
-    // Jika nama tabel di database tidak sesuai dengan format default (jamak), deklarasikan nama tabelnya
     protected $table = 'news_articles';
 
-    // Kolom-kolom yang dapat diisi (mass assignable)
     protected $fillable = [
         'title', 'content', 'publisher_id', 'url', 'published_at', 'status'
     ];
 
-    // Jika menggunakan timestamp di tabel, bisa deklarasikan
     public $timestamps = true;
+
+    public function sentiments()
+    {
+        return $this->hasMany(NewsArticleSentiment::class, 'article_fk', 'id');
+    }
 }

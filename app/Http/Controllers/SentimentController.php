@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/SentimentController.php
 
 namespace App\Http\Controllers;
 
@@ -13,6 +14,49 @@ use Carbon\Carbon;
 
 class SentimentController extends Controller
 {
+    // Expanded keyword dictionary with weights
+    private $sentimentKeywords = [
+        'positive' => [
+            // Sangat positif (weight: 1.0)
+            'sangat bagus' => 1.0, 'luar biasa' => 1.0, 'sempurna' => 1.0, 'excellent' => 1.0,
+            'terbaik' => 1.0, 'hebat' => 1.0, 'fantastis' => 1.0, 'spektakuler' => 1.0,
+            
+            // Positif kuat (weight: 0.8)
+            'bagus' => 0.8, 'baik' => 0.8, 'mantap' => 0.8, 'puas' => 0.8, 'bersih' => 0.8,
+            'lancar' => 0.8, 'top' => 0.8, 'sukses' => 0.8, 'berhasil' => 0.8, 'memuaskan' => 0.8,
+            'efektif' => 0.8, 'efisien' => 0.8, 'canggih' => 0.8, 'modern' => 0.8,
+            
+            // Positif sedang (weight: 0.6)
+            'perbaikan' => 0.6, 'membaik' => 0.6, 'meningkat' => 0.6, 'berkembang' => 0.6,
+            'maju' => 0.6, 'progres' => 0.6, 'inovasi' => 0.6, 'kreatif' => 0.6,
+            'solutif' => 0.6, 'responsif' => 0.6, 'cepat tanggap' => 0.6,
+            
+            // Positif ringan (weight: 0.4)
+            'lumayan' => 0.4, 'oke' => 0.4, 'cukup baik' => 0.4, 'tidak buruk' => 0.4,
+            'layak' => 0.4, 'memadai' => 0.4, 'stabil' => 0.4,
+        ],
+        
+        'negative' => [
+            // Sangat negatif (weight: 1.0)
+            'sangat buruk' => 1.0, 'parah sekali' => 1.0, 'mengerikan' => 1.0, 'bencana' => 1.0,
+            'kacau balau' => 1.0, 'hancur' => 1.0, 'fatal' => 1.0, 'berbahaya' => 1.0,
+            
+            // Negatif kuat (weight: 0.8)
+            'rusak' => 0.8, 'macet' => 0.8, 'buruk' => 0.8, 'parah' => 0.8, 'bahaya' => 0.8,
+            'masalah' => 0.8, 'banjir' => 0.8, 'lambat' => 0.8, 'jelek' => 0.8, 'gagal' => 0.8,
+            'error' => 0.8, 'bermasalah' => 0.8, 'kecewa' => 0.8, 'mengecewakan' => 0.8,
+            
+            // Negatif sedang (weight: 0.6)
+            'kurang' => 0.6, 'lemah' => 0.6, 'minim' => 0.6, 'terbatas' => 0.6,
+            'menurun' => 0.6, 'mundur' => 0.6, 'terhambat' => 0.6, 'terlambat' => 0.6,
+            'tidak efisien' => 0.6, 'boros' => 0.6, 'tidak efektif' => 0.6,
+            
+            // Negatif ringan (weight: 0.4)
+            'kurang baik' => 0.4, 'biasa saja' => 0.4, 'tidak istimewa' => 0.4,
+            'perlu perbaikan' => 0.4, 'belum optimal' => 0.4, 'kurang memuaskan' => 0.4,
+        ],
+    ];
+
     public function index()
     {
         // Stats
@@ -58,97 +102,17 @@ class SentimentController extends Controller
             $request->validate(['text' => 'required|string|min:10']);
             $text = trim($request->input('text'));
 
-            $p = $this->predict($text);
-            $confidence = (int) round(max([$p['pos'], $p['neg'], $p['neu']]) * 100);
+            $analysis = $this->predictAdvanced($text);
+            
+            // Save to database
+            $this->saveSentimentToDatabase($text, $analysis);
+
         } catch (ValidationException $e) {
             return response()->json([
-                'success' => true,
-                'message' => 'ok.',
-                'data' => [
-                    'text' => $text,
-                    'sentiment' => $p['label'],
-                    'confidence' => $confidence,
-                    'keywords' => $this->extractKeywords($text),
-                    'processed_at' => now()->toIso8601String(),
-                    'model' => 'rule-stub',
-                ],
+                'success' => false,
+                'message' => 'Validasi gagal.',
                 'errors' => $e->errors(),
             ], 422);
-        }
-
-        try {
-            $rawText = trim($request->input('text'));
-            $normalized = $this->normalizeText($rawText);
-
-            $useHash = Schema::hasColumn('news_article_sentiments', 'quote_hash');
-            $hash = $useHash ? hash('sha256', $normalized) : null;
-
-            $orderCol = Schema::hasColumn('news_article_sentiments', 'id') ? 'id'
-                : (Schema::hasColumn('news_article_sentiments', 'analyzed_at') ? 'analyzed_at'
-                    : (Schema::hasColumn('news_article_sentiments', 'created_at') ? 'created_at' : null));
-
-            $q = DB::table('news_article_sentiments');
-            $useHash ? $q->where('quote_hash', $hash) : $q->where('quote_text', $rawText);
-            $row = $orderCol ? $q->orderByDesc($orderCol)->first() : $q->first();
-
-            if (!$row) {
-                $pred = $this->predict($rawText);
-                if (!$pred || !isset($pred['label'])) {
-                    return response()->json(['success' => false, 'message' => 'Gagal melakukan prediksi.'], 500);
-                }
-
-                $insert = [
-                    'quote_text' => $rawText,
-                    'label' => $pred['label'],
-                    'score_positive' => (float) $pred['pos'],
-                    'score_negative' => (float) $pred['neg'],
-                    'score_neutral' => (float) $pred['neu'],
-                ];
-
-                if ($useHash) $insert['quote_hash'] = $hash;
-                if (Schema::hasColumn('news_article_sentiments', 'model')) $insert['model'] = $pred['model'] ?? 'rule-stub';
-                if (Schema::hasColumn('news_article_sentiments', 'analyzed_at')) $insert['analyzed_at'] = Carbon::now();
-                if (Schema::hasColumn('news_article_sentiments', 'created_at')) $insert['created_at'] = Carbon::now();
-                if (Schema::hasColumn('news_article_sentiments', 'updated_at')) $insert['updated_at'] = Carbon::now();
-                if (Schema::hasColumn('news_article_sentiments', 'article_fk')) $insert['article_fk'] = $insert['article_fk'] ?? 0;
-
-                $table = DB::table('news_article_sentiments');
-
-                try {
-                    if (Schema::hasColumn('news_article_sentiments', 'id')) {
-                        $id = $table->insertGetId($insert);
-                        $row = $table->where('id', $id)->first();
-                    } else {
-                        $ok = $table->insert($insert);
-                        if (!$ok) throw new \RuntimeException('Insert gagal.');
-                        $row = $orderCol ? $table->orderByDesc($orderCol)->first() : (object) $insert;
-                    }
-                } catch (QueryException $qe) {
-                    Log::warning('Insert failed (mungkin VIEW/non-insertable). Mengembalikan hasil tanpa save.', [
-                        'error' => $qe->getMessage()
-                    ]);
-                    $row = (object) $insert;
-                }
-            }
-
-            $scores = [
-                (float)($row->score_positive ?? 0),
-                (float)($row->score_negative ?? 0),
-                (float)($row->score_neutral ?? 0),
-            ];
-            $confidence = (int) round(max($scores) * 100);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Analysis completed successfully',
-                'data' => [
-                    'text' => $row->quote_text ?? $rawText,
-                    'sentiment' => $row->label ?? 'neutral',
-                    'confidence' => $confidence,
-                    'keywords' => $this->extractKeywords($row->quote_text ?? $rawText),
-                    'processed_at' => now()->toIso8601String(),
-                ],
-            ]);
         } catch (\Throwable $e) {
             Log::error('Analyze error', ['msg' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json([
@@ -157,12 +121,193 @@ class SentimentController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Analysis completed successfully',
+            'data' => [
+                'text' => $text,
+                'sentiment' => $analysis['label'],
+                'confidence' => $analysis['confidence'],
+                'scores' => [
+                    'positive' => $analysis['pos'],
+                    'negative' => $analysis['neg'],
+                    'neutral' => $analysis['neu'],
+                ],
+                'detected_keywords' => $analysis['detected_keywords'],
+                'reasoning' => $analysis['reasoning'],
+                'keywords' => $this->extractKeywords($text),
+                'processed_at' => now()->toIso8601String(),
+            ],
+        ]);
     }
 
-    /** Alias */
-    public function analyzeManual(Request $request) { return $this->analyze($request); }
+    public function analyzeManual(Request $request)
+    {
+        return $this->analyze($request);
+    }
 
-    /* ========================= Batch YouTube ========================= */
+    private function predictAdvanced(string $text): array
+    {
+        $lowerText = Str::lower($text);
+        
+        $positiveScore = 0;
+        $negativeScore = 0;
+        $detectedPositive = [];
+        $detectedNegative = [];
+        
+        // Detect positive keywords
+        foreach ($this->sentimentKeywords['positive'] as $keyword => $weight) {
+            if (Str::contains($lowerText, $keyword)) {
+                $positiveScore += $weight;
+                $detectedPositive[] = [
+                    'keyword' => $keyword,
+                    'weight' => $weight,
+                    'score' => $weight,
+                ];
+            }
+        }
+        
+        // Detect negative keywords
+        foreach ($this->sentimentKeywords['negative'] as $keyword => $weight) {
+            if (Str::contains($lowerText, $keyword)) {
+                $negativeScore += $weight;
+                $detectedNegative[] = [
+                    'keyword' => $keyword,
+                    'weight' => $weight,
+                    'score' => $weight,
+                ];
+            }
+        }
+        
+        // Calculate total and normalize
+        $totalScore = $positiveScore + $negativeScore;
+        
+        if ($totalScore == 0) {
+            return [
+                'label' => 'neutral',
+                'pos' => 0.10,
+                'neg' => 0.10,
+                'neu' => 0.80,
+                'confidence' => 80,
+                'detected_keywords' => [
+                    'positive' => [],
+                    'negative' => [],
+                ],
+                'reasoning' => 'Tidak ditemukan kata kunci sentimen yang signifikan. Teks cenderung netral atau informatif.',
+                'model' => 'advanced-rule-based',
+            ];
+        }
+        
+        // Normalize scores
+        $posNormalized = $totalScore > 0 ? $positiveScore / $totalScore : 0;
+        $negNormalized = $totalScore > 0 ? $negativeScore / $totalScore : 0;
+        
+        // Determine sentiment label with 5 categories
+        $label = '';
+        $reasoning = '';
+        
+        $diff = abs($posNormalized - $negNormalized);
+        
+        if ($diff < 0.15) {
+            if ($posNormalized > $negNormalized) {
+                $label = 'positive-neutral';
+                $reasoning = 'Teks mengandung sentimen positif dan netral yang seimbang. ';
+            } else {
+                $label = 'negative-neutral';
+                $reasoning = 'Teks mengandung sentimen negatif dan netral yang seimbang. ';
+            }
+        } else if ($posNormalized > 0.65) {
+            $label = 'positive';
+            $reasoning = 'Teks didominasi oleh kata-kata positif. ';
+        } else if ($negNormalized > 0.65) {
+            $label = 'negative';
+            $reasoning = 'Teks didominasi oleh kata-kata negatif. ';
+        } else if ($posNormalized > $negNormalized) {
+            $label = 'positive-neutral';
+            $reasoning = 'Teks cenderung positif namun masih mengandung unsur netral. ';
+        } else {
+            $label = 'negative-neutral';
+            $reasoning = 'Teks cenderung negatif namun masih mengandung unsur netral. ';
+        }
+        
+        // Add detected keywords to reasoning
+        if (count($detectedPositive) > 0) {
+            $posWords = implode(', ', array_column($detectedPositive, 'keyword'));
+            $reasoning .= "Kata positif terdeteksi: {$posWords}. ";
+        }
+        if (count($detectedNegative) > 0) {
+            $negWords = implode(', ', array_column($detectedNegative, 'keyword'));
+            $reasoning .= "Kata negatif terdeteksi: {$negWords}.";
+        }
+        
+        // Calculate final scores
+        $neuScore = max(0.05, 1 - $posNormalized - $negNormalized);
+        $posScore = $posNormalized * 0.95;
+        $negScore = $negNormalized * 0.95;
+        
+        // Ensure scores sum to ~1.0
+        $sum = $posScore + $negScore + $neuScore;
+        $posScore = $posScore / $sum;
+        $negScore = $negScore / $sum;
+        $neuScore = $neuScore / $sum;
+        
+        $confidence = (int) round(max([$posScore, $negScore, $neuScore]) * 100);
+        
+        return [
+            'label' => $label,
+            'pos' => round($posScore, 4),
+            'neg' => round($negScore, 4),
+            'neu' => round($neuScore, 4),
+            'confidence' => $confidence,
+            'detected_keywords' => [
+                'positive' => $detectedPositive,
+                'negative' => $detectedNegative,
+            ],
+            'reasoning' => trim($reasoning),
+            'model' => 'advanced-rule-based',
+        ];
+    }
+    
+    private function saveSentimentToDatabase(string $text, array $analysis): void
+    {
+        $normalized = $this->normalizeText($text);
+        $useHash = Schema::hasColumn('news_article_sentiments', 'quote_hash');
+        $hash = $useHash ? hash('sha256', $normalized) : null;
+        
+        $q = DB::table('news_article_sentiments');
+        if ($useHash && $hash) {
+            $q->where('quote_hash', $hash);
+        } else {
+            $q->where('quote_text', $text);
+        }
+        
+        if ($q->exists()) {
+            return;
+        }
+        
+        $now = Carbon::now();
+        $row = [
+            'quote_text' => $text,
+            'label' => $analysis['label'],
+            'score_positive' => (float) $analysis['pos'],
+            'score_negative' => (float) $analysis['neg'],
+            'score_neutral' => (float) $analysis['neu'],
+        ];
+        
+        if ($useHash) $row['quote_hash'] = $hash;
+        if (Schema::hasColumn('news_article_sentiments', 'model')) $row['model'] = $analysis['model'];
+        if (Schema::hasColumn('news_article_sentiments', 'analyzed_at')) $row['analyzed_at'] = $now;
+        if (Schema::hasColumn('news_article_sentiments', 'created_at')) $row['created_at'] = $now;
+        if (Schema::hasColumn('news_article_sentiments', 'updated_at')) $row['updated_at'] = $now;
+        if (Schema::hasColumn('news_article_sentiments', 'article_fk')) $row['article_fk'] = 0;
+        
+        try {
+            DB::table('news_article_sentiments')->insert($row);
+        } catch (\Exception $e) {
+            Log::warning('Insert sentiment failed', ['error' => $e->getMessage()]);
+        }
+    }
 
     public function analyzeBatchYoutube(Request $request)
     {
@@ -186,7 +331,7 @@ class SentimentController extends Controller
         }
 
         try {
-            [$items, $meta] = $this->parseUploadedFileToTexts($file);
+            list($items, $meta) = $this->parseUploadedFileToTexts($file);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
@@ -201,7 +346,7 @@ class SentimentController extends Controller
             ], 422);
         }
 
-        [$inserted, $skipped] = $this->insertBatchYoutubeSentiments($items);
+        list($inserted, $skipped) = $this->insertBatchYoutubeSentiments($items);
 
         return response()->json([
             'success' => true,
@@ -220,25 +365,38 @@ class SentimentController extends Controller
     {
         $useHash = Schema::hasColumn('youtube_comment_sentiments', 'comment_hash');
         $now = Carbon::now();
-        $inserted = 0; $skipped = 0;
+        $inserted = 0;
+        $skipped = 0;
 
         foreach ($items as $item) {
             $commentText = trim((string)($item['text'] ?? ''));
             $url = isset($item['url']) ? trim((string)$item['url']) : null;
 
-            if ($commentText === '' || mb_strlen($commentText) < 3) { $skipped++; continue; }
+            if ($commentText === '' || mb_strlen($commentText) < 3) {
+                $skipped++;
+                continue;
+            }
 
             $normalized = $this->normalizeText($commentText);
             $hash = $useHash ? hash('sha256', $normalized) : null;
 
             $q = DB::table('youtube_comment_sentiments');
-            if ($useHash && $hash) $q->where('comment_hash', $hash);
-            else $q->where('comment_text', $commentText);
+            if ($useHash && $hash) {
+                $q->where('comment_hash', $hash);
+            } else {
+                $q->where('comment_text', $commentText);
+            }
 
-            if ($q->exists()) { $skipped++; continue; }
+            if ($q->exists()) {
+                $skipped++;
+                continue;
+            }
 
-            $pred = $this->predict($commentText);
-            if (!$pred || !isset($pred['label'])) { $skipped++; continue; }
+            $pred = $this->predictAdvanced($commentText);
+            if (!$pred || !isset($pred['label'])) {
+                $skipped++;
+                continue;
+            }
 
             $videoFk = null;
             if ($url) {
@@ -258,7 +416,7 @@ class SentimentController extends Controller
             if ($useHash) $row['comment_hash'] = $hash;
             if (Schema::hasColumn('youtube_comment_sentiments', 'video_fk'))  $row['video_fk'] = $videoFk;
             if (Schema::hasColumn('youtube_comment_sentiments', 'comment_fk')) $row['comment_fk'] = null;
-            if (Schema::hasColumn('youtube_comment_sentiments', 'model'))      $row['model'] = $pred['model'] ?? 'rule-stub';
+            if (Schema::hasColumn('youtube_comment_sentiments', 'model'))      $row['model'] = $pred['model'] ?? 'advanced-rule-based';
             if (Schema::hasColumn('youtube_comment_sentiments', 'analyzed_at')) $row['analyzed_at'] = $now;
             if (Schema::hasColumn('youtube_comment_sentiments', 'created_at'))  $row['created_at'] = $now;
             if (Schema::hasColumn('youtube_comment_sentiments', 'updated_at'))  $row['updated_at'] = $now;
@@ -267,26 +425,13 @@ class SentimentController extends Controller
                 DB::table('youtube_comment_sentiments')->insert($row);
                 $inserted++;
             } catch (\Exception $e) {
-                Log::error('❌ Insert YouTube failed', ['error' => $e->getMessage(), 'text' => substr($commentText, 0, 30)]);
+                Log::error('Insert YouTube failed', ['error' => $e->getMessage(), 'text' => substr($commentText, 0, 30)]);
                 $skipped++;
             }
         }
 
         return [$inserted, $skipped];
     }
-
-    public function getYoutubeSentiments()
-    {
-        $sentiments = DB::table('youtube_comment_sentiments')
-            ->select('id','video_fk','comment_text','label','score_positive','score_negative','score_neutral','created_at')
-            ->orderBy('created_at', 'desc')
-            ->limit(50)
-            ->get();
-
-        return response()->json(['success' => true, 'data' => $sentiments]);
-    }
-
-    /* ========================= Batch News ========================= */
 
     public function analyzeBatch(Request $request)
     {
@@ -295,6 +440,7 @@ class SentimentController extends Controller
             'file' => 'required_if:data_source,uploaded|file|mimes:csv,txt,xlsx,xls|max:20480',
             'batch_size' => 'nullable|integer|min:1|max:1000',
             'priority' => 'nullable|in:low,normal,high',
+            'analysis_type' => 'nullable|in:news,youtube',
         ]);
 
         if ($request->input('data_source') !== 'uploaded') {
@@ -309,8 +455,9 @@ class SentimentController extends Controller
             return response()->json(['success' => false, 'message' => 'File tidak ditemukan.'], 422);
         }
 
-        try { [$items, $meta] = $this->parseUploadedFileToTexts($file); }
-        catch (\Throwable $e) {
+        try {
+            list($items, $meta) = $this->parseUploadedFileToTexts($file);
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal membaca file: ' . $e->getMessage(),
@@ -324,18 +471,25 @@ class SentimentController extends Controller
             ], 422);
         }
 
-        [$inserted, $skipped] = $this->insertBatchSentiments($items);
+        $analysisType = $request->input('analysis_type', 'news');
+        
+        if ($analysisType === 'youtube') {
+            list($inserted, $skipped) = $this->insertBatchYoutubeSentiments($items);
+            $message = 'File batch YouTube diproses.';
+        } else {
+            list($inserted, $skipped) = $this->insertBatchSentiments($items);
+            $message = 'File batch News diproses.';
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'File batch diproses.',
+            'message' => $message,
             'data' => [
                 'filename' => $meta['filename'],
                 'size_kb' => $meta['size_kb'],
                 'rows' => $meta['rows'],
                 'inserted' => $inserted,
-                'skipped' => $skipped,
-            ],
+                'skipped' => $skipped],
         ]);
     }
 
@@ -362,13 +516,15 @@ class SentimentController extends Controller
         return response()->json(['success' => true, 'data' => $sentiments]);
     }
 
-    private function parseUploadedFileToTexts(\Illuminate\Http\UploadedFile $file): array
+    private function parseUploadedFileToTexts($file): array
     {
         $ext = strtolower($file->getClientOriginalExtension());
         $sizeKb = (int) round($file->getSize() / 1024);
         $name = $file->getClientOriginalName();
 
-        $texts = []; $rows = 0; $urls = [];
+        $texts = [];
+        $rows = 0;
+        $urls = [];
 
         if (in_array($ext, ['csv', 'txt'])) {
             $handle = fopen($file->getRealPath(), 'r');
@@ -388,7 +544,7 @@ class SentimentController extends Controller
 
             $hasHeader = false;
             if (is_array($firstLine)) {
-                $lower = array_map(fn($v) => strtolower(trim((string)$v)), $firstLine);
+                $lower = array_map(function($v) { return strtolower(trim((string)$v)); }, $firstLine);
                 $hasHeader = count(array_intersect($lower, $possibleHeaders)) > 0;
             }
 
@@ -397,32 +553,50 @@ class SentimentController extends Controller
                 $urlHeaderCandidates = ['url','link','source_url','article_url'];
                 foreach ($urlHeaderCandidates as $cand) {
                     $pos = array_search($cand, $lower, true);
-                    if ($pos !== false) { $urlIdx = $pos; break; }
+                    if ($pos !== false) {
+                        $urlIdx = $pos;
+                        break;
+                    }
                 }
             }
 
             $textIdx = 0;
             if ($hasHeader) {
-                $map = array_flip(array_map(fn($v) => strtolower(trim((string)$v)), $firstLine));
+                $map = array_flip(array_map(function($v) { return strtolower(trim((string)$v)); }, $firstLine));
                 foreach ($possibleHeaders as $h) {
-                    if (isset($map[$h])) { $textIdx = (int)$map[$h]; break; }
+                    if (isset($map[$h])) {
+                        $textIdx = (int)$map[$h];
+                        break;
+                    }
                 }
             } else {
                 $val = is_array($firstLine) ? trim((string)($firstLine[0] ?? '')) : trim((string)$firstLine);
-                if ($val !== '') { $texts[] = $val; $urls[] = null; $rows++; }
+                if ($val !== '') {
+                    $texts[] = $val;
+                    $urls[] = null;
+                    $rows++;
+                }
             }
 
-            if (isset($lower) && $hasHeader && $textIdx === 0
-                && !in_array('text', $lower) && !in_array('quote_text', $lower)
-                && !in_array('quote', $lower) && !in_array('content', $lower)
-                && !in_array('konten', $lower) && !in_array('isi', $lower)
-                && !in_array('isi_berita', $lower) && !in_array('body', $lower)
-                && !in_array('kalimat', $lower) && !in_array('berita', $lower)
-                && !in_array('deskripsi', $lower) && !in_array('description', $lower)
-            ) {
-                foreach ($lower as $idx => $name2) {
-                    if (strpos($name2, 'content') !== false || strpos($name2, 'isi') !== false || strpos($name2, 'teks') !== false) {
-                        $textIdx = (int)$idx; break;
+            if (isset($lower) && $hasHeader && $textIdx === 0) {
+                $found = false;
+                foreach ($possibleHeaders as $ph) {
+                    if (in_array($ph, $lower)) {
+                        $found = true;
+                        break;
+                    }
+                }
+                
+                if (!$found) {
+                    foreach ($lower as $idx => $name2) {
+                        if (
+                            strpos($name2, 'content') !== false ||
+                            strpos($name2, 'isi') !== false ||
+                            strpos($name2, 'teks') !== false
+                        ) {
+                            $textIdx = (int) $idx;
+                            break;
+                        }
                     }
                 }
             }
@@ -439,7 +613,7 @@ class SentimentController extends Controller
             fclose($handle);
         } elseif (in_array($ext, ['xlsx', 'xls'])) {
             if (!class_exists(\PhpOffice\PhpSpreadsheet\IOFactory::class)) {
-                throw new \RuntimeException('Parser Excel tidak tersedia. Instal phpoffice/phpspreadsheet atau gunakan CSV.');
+                throw new \RuntimeException('Parser Excel tidak tersedia.');
             }
 
             $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($file->getRealPath());
@@ -448,7 +622,7 @@ class SentimentController extends Controller
             $sheet = $spreadsheet->getActiveSheet();
 
             $firstRow = $sheet->rangeToArray('A1:Z1', null, true, true, true)[1] ?? [];
-            $lower = array_map(fn($v) => strtolower(trim((string)$v)), array_values($firstRow));
+            $lower = array_map(function($v) { return strtolower(trim((string)$v)); }, array_values($firstRow));
             $map = array_flip($lower);
             $possibleHeaders = ['text','quote_text','quote','content','kalimat','berita'];
 
@@ -467,7 +641,9 @@ class SentimentController extends Controller
 
             for ($r = $startRow; $r <= $highestRow; $r++) {
                 $val = trim((string)$sheet->getCell($textCol.$r)->getValue());
-                if ($val !== '') { $texts[] = $val; }
+                if ($val !== '') {
+                    $texts[] = $val;
+                }
                 $rows++;
             }
         } else {
@@ -475,7 +651,9 @@ class SentimentController extends Controller
         }
 
         $items = [];
-        foreach ($texts as $i => $t) { $items[] = ['text' => $t, 'url' => $urls[$i] ?? null]; }
+        foreach ($texts as $i => $t) {
+            $items[] = ['text' => $t, 'url' => $urls[$i] ?? null];
+        }
 
         return [$items, ['filename' => $name, 'size_kb' => $sizeKb, 'rows' => $rows]];
     }
@@ -484,25 +662,38 @@ class SentimentController extends Controller
     {
         $useHash = Schema::hasColumn('news_article_sentiments', 'quote_hash');
         $now = Carbon::now();
-        $inserted = 0; $skipped = 0;
+        $inserted = 0;
+        $skipped = 0;
 
         foreach ($items as $item) {
             $rawText = trim((string)($item['text'] ?? ''));
             $url = isset($item['url']) ? trim((string)$item['url']) : null;
 
-            if ($rawText === '' || mb_strlen($rawText) < 3) { $skipped++; continue; }
+            if ($rawText === '' || mb_strlen($rawText) < 3) {
+                $skipped++;
+                continue;
+            }
 
             $normalized = $this->normalizeText($rawText);
             $hash = $useHash ? hash('sha256', $normalized) : null;
 
             $q = DB::table('news_article_sentiments');
-            if ($useHash && $hash) $q->where('quote_hash', $hash);
-            else $q->where('quote_text', $rawText);
+            if ($useHash && $hash) {
+                $q->where('quote_hash', $hash);
+            } else {
+                $q->where('quote_text', $rawText);
+            }
 
-            if ($q->exists()) { $skipped++; continue; }
+            if ($q->exists()) {
+                $skipped++;
+                continue;
+            }
 
-            $pred = $this->predict($rawText);
-            if (!$pred || !isset($pred['label'])) { $skipped++; continue; }
+            $pred = $this->predictAdvanced($rawText);
+            if (!$pred || !isset($pred['label'])) {
+                $skipped++;
+                continue;
+            }
 
             $articleFk = null;
             if ($url) {
@@ -525,7 +716,7 @@ class SentimentController extends Controller
             if (Schema::hasColumn('news_article_sentiments', 'speaker'))      $row['speaker'] = null;
             if (Schema::hasColumn('news_article_sentiments', 'paragraph_idx'))$row['paragraph_idx'] = null;
             if (Schema::hasColumn('news_article_sentiments', 'article_idx'))  $row['article_idx'] = null;
-            if (Schema::hasColumn('news_article_sentiments', 'model'))        $row['model'] = $pred['model'] ?? 'rule-stub';
+            if (Schema::hasColumn('news_article_sentiments', 'model'))        $row['model'] = $pred['model'] ?? 'advanced-rule-based';
             if (Schema::hasColumn('news_article_sentiments', 'analyzed_at'))  $row['analyzed_at'] = $now;
             if (Schema::hasColumn('news_article_sentiments', 'created_at'))   $row['created_at'] = $now;
             if (Schema::hasColumn('news_article_sentiments', 'updated_at'))   $row['updated_at'] = $now;
@@ -534,7 +725,7 @@ class SentimentController extends Controller
                 DB::table('news_article_sentiments')->insert($row);
                 $inserted++;
             } catch (\Exception $e) {
-                Log::error('❌ Insert failed', ['error' => $e->getMessage(), 'text' => substr($rawText, 0, 30), 'row' => $row]);
+                Log::error('Insert failed', ['error' => $e->getMessage(), 'text' => substr($rawText, 0, 30), 'row' => $row]);
                 $skipped++;
             }
         }
@@ -551,16 +742,7 @@ class SentimentController extends Controller
 
     private function predict(string $text): array
     {
-        $lx = Str::lower($text);
-        $neg = ['rusak','macet','buruk','parah','bahaya','masalah','banjir','lambat'];
-        $pos = ['bagus','baik','mantap','puas','bersih','lancar','top','sukses'];
-
-        $negHits = collect($neg)->filter(fn($w) => Str::contains($lx, $w))->count();
-        $posHits = collect($pos)->filter(fn($w) => Str::contains($lx, $w))->count();
-
-        if ($negHits > $posHits) return ['label'=>'negative','pos'=>0.05,'neg'=>0.90,'neu'=>0.05,'model'=>'rule-stub'];
-        if ($posHits > $negHits) return ['label'=>'positive','pos'=>0.90,'neg'=>0.05,'neu'=>0.05,'model'=>'rule-stub'];
-        return ['label'=>'neutral','pos'=>0.10,'neg'=>0.10,'neu'=>0.80,'model'=>'rule-stub'];
+        return $this->predictAdvanced($text);
     }
 
     private function extractKeywords(string $text): array
@@ -571,7 +753,7 @@ class SentimentController extends Controller
 
         return collect(explode(' ', $t))
             ->filter()
-            ->reject(fn($w) => in_array($w, $stop))
+            ->reject(function($w) use ($stop) { return in_array($w, $stop); }) // <-- fix di sini
             ->unique()
             ->take(6)
             ->values()
@@ -589,6 +771,9 @@ class SentimentController extends Controller
             (float)($row->score_neutral ?? 0),
         ];
         $confidence = (int) round(max($scores) * 100);
+        
+        // Re-analyze to get detailed info
+        $analysis = $this->predictAdvanced($row->quote_text);
 
         return response()->json([
             'success' => true,
@@ -602,13 +787,14 @@ class SentimentController extends Controller
                 'score_positive'=> (float)($row->score_positive ?? 0),
                 'score_negative'=> (float)($row->score_negative ?? 0),
                 'score_neutral' => (float)($row->score_neutral ?? 0),
+                'detected_keywords' => $analysis['detected_keywords'] ?? [],
+                'reasoning'     => $analysis['reasoning'] ?? 'Tidak ada penjelasan tersedia.',
                 'created_at'    => $row->created_at ?? null,
                 'updated_at'    => $row->updated_at ?? null,
             ]
         ]);
     }
 
-    /** ===== Tambahan: Hapus 1 baris sentimen ===== */
     public function destroy($id)
     {
         try {

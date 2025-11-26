@@ -261,7 +261,7 @@ class ReportController extends Controller
 
                 $rawResults = DB::table('news_articles as a')
                     ->leftJoin('news_article_sentiments as s', 'a.id', '=', 's.article_fk')
-                    ->whereBetween('a.published_at', [$startLocal, $endLocal])
+                    ->whereBetween('s.analyzed_at', [$startLocal, $endLocal])
                     ->groupBy('a.id', 'a.title', 'a.url', 'a.published_at', 'a.created_at')
                     ->selectRaw("
                         a.id,
@@ -1201,7 +1201,7 @@ class ReportController extends Controller
             // TAMBAHKAN summary_clean dan summary_raw di SELECT dan GROUP BY
             $rawResults = DB::table('news_articles as a')
                 ->leftJoin('news_article_sentiments as s', 'a.id', '=', 's.article_fk')
-                ->whereBetween('a.published_at', [$start, $end])
+                ->whereBetween('s.analyzed_at', [$start, $end])
                 ->groupBy('a.id', 'a.title', 'a.url', 'a.published_at', 'a.created_at', 'a.summary_clean', 'a.summary_raw') // ← TAMBAHAN
                 ->orderBy('a.published_at', 'desc')
                 ->selectRaw("
@@ -1286,7 +1286,7 @@ class ReportController extends Controller
 
         return (int) DB::table($c['sents_table'] . ' as s')
             ->join($c['articles_table'] . ' as a', "a.{$c['article_id']}", '=', "s.$fkCol")
-            ->whereBetween("a.$dateCol", [$start, $end])
+            ->whereBetween("s.analyzed_at", [$start, $end])
             ->whereNotNull("s.$labelCol")
             ->distinct()
             ->count("a.{$c['article_id']}");
@@ -1297,7 +1297,7 @@ class ReportController extends Controller
         // Ambil agregat per-bulan
         $rows = DB::table('news_articles as a')
             ->leftJoin('news_article_sentiments as s', 'a.id', '=', 's.article_fk')
-            ->whereBetween('a.published_at', [$start, $end])
+            ->whereBetween('s.analyzed_at', [$start, $end])
             ->selectRaw("
             DATE_FORMAT(a.published_at, '%Y-%m') as month_key,
             SUM(CASE WHEN LOWER(s.label)='positive' THEN 1 ELSE 0 END) as pos,
@@ -1377,7 +1377,7 @@ class ReportController extends Controller
         // Hitung jumlah label per ARTIKEL di periode
         $rows = DB::table('news_articles as a')
             ->leftJoin('news_article_sentiments as s', 'a.id', '=', 's.article_fk')
-            ->whereBetween('a.published_at', [$start, $end])
+            ->whereBetween('s.analyzed_at', [$start, $end])
             ->groupBy('a.id')
             ->selectRaw("
             a.id,

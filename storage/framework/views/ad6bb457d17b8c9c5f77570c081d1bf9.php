@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('title', 'Laporan Grafik Bulanan'); ?>
 <?php $__env->startSection('page-title', 'Cetak Laporan'); ?>
 <?php $__env->startSection('page-description', 'Generate dan preview laporan analisis sentimen (PDF)'); ?>
@@ -770,4 +768,4 @@
     })();
 </script>
 <?php $__env->stopPush(); ?>
-<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\project_magang\resources\views/reports/charts.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\laragon\www\project_magang\resources\views/reports/charts.blade.php ENDPATH**/ ?>

@@ -147,6 +147,39 @@ class SentimentController extends Controller
         return $this->analyze($request);
     }
 
+    /**
+     * NEW: pintu khusus untuk dipanggil dari ScrapingController
+     * - TANPA Request/Response
+     * - tetap pakai predictAdvanced + saveSentimentToDatabase
+     */
+    public function analyzeFromScraping(string $text): array
+    {
+        $text = trim($text);
+
+        // ikuti aturan minimal 10 karakter seperti analyze()
+        if (mb_strlen($text) < 10) {
+            throw new \RuntimeException('Teks terlalu pendek untuk dianalisis.');
+        }
+
+        $analysis = $this->predictAdvanced($text);
+
+        // simpan ke DB dengan cara yang sama
+        $this->saveSentimentToDatabase($text, $analysis);
+
+        return [
+            'text'       => $text,
+            'sentiment'  => $analysis['label'],
+            'confidence' => $analysis['confidence'],
+            'scores'     => [
+                'positive' => $analysis['pos'],
+                'negative' => $analysis['neg'],
+                'neutral'  => $analysis['neu'],
+            ],
+            'detected_keywords' => $analysis['detected_keywords'],
+            'reasoning'         => $analysis['reasoning'],
+        ];
+    }
+
     private function predictAdvanced(string $text): array
     {
         $lowerText = Str::lower($text);
@@ -300,7 +333,7 @@ class SentimentController extends Controller
         if (Schema::hasColumn('news_article_sentiments', 'analyzed_at')) $row['analyzed_at'] = $now;
         if (Schema::hasColumn('news_article_sentiments', 'created_at')) $row['created_at'] = $now;
         if (Schema::hasColumn('news_article_sentiments', 'updated_at')) $row['updated_at'] = $now;
-        if (Schema::hasColumn('news_article_sentiments', 'article_fk')) $row['article_fk'] = 0;
+        if (Schema::hasColumn('news_article_sentiments', 'article_fk')) $row['article_fk'] = null;
         
         try {
             DB::table('news_article_sentiments')->insert($row);
@@ -711,7 +744,7 @@ class SentimentController extends Controller
             ];
 
             if ($useHash) $row['quote_hash'] = $hash;
-            if (Schema::hasColumn('news_article_sentiments', 'article_fk')) $row['article_fk'] = $articleFk ?: 0;
+            if (Schema::hasColumn('news_article_sentiments', 'article_fk')) $row['article_fk'] = $articleFk ?: null;
             if (Schema::hasColumn('news_article_sentiments', 'quote_type'))   $row['quote_type'] = 'direct';
             if (Schema::hasColumn('news_article_sentiments', 'speaker'))      $row['speaker'] = null;
             if (Schema::hasColumn('news_article_sentiments', 'paragraph_idx'))$row['paragraph_idx'] = null;

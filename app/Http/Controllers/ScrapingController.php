@@ -46,9 +46,12 @@ class ScrapingController extends Controller
 
         $sentCtrl = app(SentimentController::class);
 
-        $ok = 0; $skip = 0; $details = [];
+        $ok = 0; 
+        $skip = 0; 
+        $details = [];
+
         foreach ($rows as $r) {
-            // pilih teks yang paling bersih tersedia
+            // pilih teks yang paling bersih tersedia (LOGIKA ASLI)
             $text = null;
             if ($type === 'news') {
                 $text = trim((string)($r->cleaned_text ?: $r->original_text));
@@ -56,17 +59,18 @@ class ScrapingController extends Controller
                 $text = trim((string)($r->cleaned_text ?: $r->comment_text));
             }
 
-            if ($text === '' || mb_strlen($text) < 3) { $skip++; continue; }
+            if ($text === '' || mb_strlen($text) < 3) {
+                $skip++; 
+                continue;
+            }
 
-            // Panggil analyzer yang sudah menyimpan ke tabel
-            // (SentimentController@analyze memang akan INSERT ke news_article_sentiments)
-            $res = $sentCtrl->analyze(new Request(['text' => $text]));
-            $payload = method_exists($res, 'getData') ? $res->getData(true) : (json_decode($res->getContent(), true) ?? []);
+            try {
+                // CHANGED: panggil pintu khusus yang langsung analisis + simpan ke DB
+                $d = $sentCtrl->analyzeFromScraping($text);
 
-            if (!empty($payload['success'])) {
                 $ok++;
-                // kumpulkan ringkasan untuk pop-up
-                $d = $payload['data'] ?? [];
+
+                // kumpulkan ringkasan untuk pop-up (logika sama)
                 $details[] = [
                     'id'        => $r->id,
                     'label'     => $d['sentiment'] ?? '-',
@@ -76,7 +80,11 @@ class ScrapingController extends Controller
                     'neu'       => $d['scores']['neutral'] ?? null,
                     'preview'   => mb_substr($text, 0, 120),
                 ];
-            } else {
+            } catch (\Throwable $e) {
+                Log::warning('analyzeSelected error', [
+                    'id'  => $r->id,
+                    'msg' => $e->getMessage(),
+                ]);
                 $skip++;
             }
         }
@@ -87,8 +95,7 @@ class ScrapingController extends Controller
             'analyzed' => $ok,
             'skipped'  => $skip,
             'details'  => $details,
-            // info: hasil sudah tersimpan oleh SentimentController@analyze
-            // ke tabel news_article_sentiments
+            // info: hasil sudah tersimpan oleh SentimentController
         ]);
     }
 

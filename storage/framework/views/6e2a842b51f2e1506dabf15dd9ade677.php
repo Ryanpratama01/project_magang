@@ -125,8 +125,16 @@
                                 <i class="fas fa-bell text-gray-600"></i>
                             </button>
                         </div>
-                        <button onclick="loadProfileData()" class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center hover:shadow-lg hover:scale-110 transition-all cursor-pointer" title="Lihat Profil">
-                            <span class="text-white font-medium"><?php echo e(strtoupper(substr(auth()->user()->name ?? 'U', 0, 1))); ?></span>
+                        
+                        <button 
+                            onclick="loadProfileData()" 
+                            id="profileBtn"
+                            class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center hover:shadow-lg hover:scale-110 transition-all cursor-pointer"
+                            title="Lihat Profil">
+                            <span class="text-white font-medium" id="profileInitial">
+                                <?php echo e(strtoupper(substr(auth()->user()->name ?? 'U', 0, 1))); ?>
+
+                            </span>
                         </button>
                     </div>
                 </div>
@@ -161,7 +169,7 @@
 
     <!-- Custom JS -->
     <script>
-        // CSRF untuk AJAX
+        // CSRF untuk AJAX (versi dari master, dipertahankan)
         $.ajaxSetup({
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -185,4 +193,5 @@
     <?php echo $__env->yieldPushContent('scripts'); ?>
 </body>
 
-</html><?php /**PATH C:\xampp\htdocs\project_magang\resources\views/layouts/app.blade.php ENDPATH**/ ?>
+</html>
+<?php /**PATH C:\laragon\www\project_magang\resources\views/layouts/app.blade.php ENDPATH**/ ?>

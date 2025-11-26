@@ -975,7 +975,7 @@
             ],
             "time": "2025-03-06T22:45:56+00:00"
         },
-        {
+        
         {
             "name": "ezyang/htmlpurifier",
             "version": "v4.19.0",
@@ -1100,8 +1100,8 @@
             },
             "time": "2025-04-09T20:32:01+00:00"
         },
-        {
-            // <-- lanjut ke package berikutnya (ini sudah bagian aslinya composer.lock)
+
+        { 
             "name": "fruitcake/php-cors",
             "version": "v1.3.0",
             "source": {

@@ -1,5 +1,6 @@
 <!-- Dropdown Menu (Muncul saat klik button profil) -->
-<div id="profileDropdown" class="hidden" style="position: fixed; top: 70px; right: 20px; width: 320px; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); z-index: 1000; overflow: hidden; animation: slideDown 0.3s ease-out;">
+<div id="profileDropdown" class="hidden"
+     style="position: fixed; top: 70px; right: 20px; width: 320px; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); z-index: 1000; overflow: hidden; animation: slideDown 0.3s ease-out;">
     <!-- Profile Info Section -->
     <div style="padding: 16px;">
         <div style="display: flex; gap: 12px; align-items: center;">
@@ -16,7 +17,10 @@
     <div style="height: 1px; background: #e9ecef;"></div>
 
     <!-- Menu: Lihat Profil -->
-    <a href="javascript:void(0)" onclick="openProfileModal()" onmouseover="this.style.background='#f8f9fa'; this.style.color='#3b82f6'" onmouseout="this.style.background='white'; this.style.color='#495057'" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: #495057; text-decoration: none; transition: all 0.2s ease; cursor: pointer;">
+    <a href="javascript:void(0)" onclick="openProfileModal()"
+       onmouseover="this.style.background='#f8f9fa'; this.style.color='#3b82f6'"
+       onmouseout="this.style.background='white'; this.style.color='#495057'"
+       style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: #495057; text-decoration: none; transition: all 0.2s ease; cursor: pointer;">
         <i class="fas fa-user-circle" style="width: 18px; text-align: center; color: #3b82f6;"></i>
         <span style="font-size: 14px; font-weight: 500;">Lihat Profil</span>
         <i class="fas fa-chevron-right" style="margin-left: auto; font-size: 12px; color: #ccc;"></i>
@@ -27,7 +31,10 @@
     <!-- Logout -->
     <form method="POST" action="{{ route('logout') }}" style="margin: 0;">
         @csrf
-        <button type="submit" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='white'" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: #dc3545; border: none; background: white; width: 100%; text-align: left; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s ease;">
+        <button type="submit"
+                onmouseover="this.style.background='#fff5f5'"
+                onmouseout="this.style.background='white'"
+                style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: #dc3545; border: none; background: white; width: 100%; text-align: left; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s ease;">
             <i class="fas fa-sign-out-alt" style="width: 18px; text-align: center; color: #dc3545;"></i>
             <span>Logout</span>
         </button>
@@ -35,24 +42,35 @@
 </div>
 
 <!-- Modal Profile dengan Fitur Edit Lengkap -->
-<div id="profileModal" class="modal fade" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+{{-- [PERUBAHAN-1]  Ubah class menjadi overlay Tailwind sendiri, bukan <div class="modal fade"> --}}
+<div id="profileModal"
+     class="fixed inset-0 z-50 hidden items-center justify-center"> {{-- overlay full-screen --}}
+    
+    {{-- [PERUBAHAN-2] Tambah backdrop hitam transparan --}}
+    <div class="absolute inset-0 bg-black bg-opacity-50"
+         onclick="closeProfileModal()"></div>
+
+    {{-- Konten modal tetap pakai struktur lama (modal-dialog, modal-content, dll) --}}
+    <div class="modal-dialog modal-lg modal-dialog-centered relative z-10" role="document">
         <div class="modal-content" style="border-radius: 15px; border: none;">
             
             <!-- Header -->
-            <div class="modal-header" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; border-radius: 15px 15px 0 0;">
+            <div class="modal-header"
+                 style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; border-radius: 15px 15px 0 0;">
                 <h5 class="modal-title">
                     <i class="fas fa-user-circle"></i> 
                     <span id="modalTitle">Profil Pengguna</span>
                 </h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                {{-- [PERUBAHAN-3] pakai onclick manual, tidak lagi mengandalkan data-dismiss="modal" --}}
+                <button type="button" class="close text-white" onclick="closeProfileModal()" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
 
             <!-- Avatar -->
             <div class="text-center" style="margin-top: -50px;">
-                <div id="profileAvatar" style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: bold; color: white; border: 5px solid white; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
+                <div id="profileAvatar"
+                     style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: bold; color: white; border: 5px solid white; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
                     <i class="fas fa-user"></i>
                 </div>
             </div>
@@ -63,7 +81,8 @@
             </div>
 
             <!-- Footer -->
-            <div class="modal-footer" id="profileFooter" style="border-top: 1px solid #dee2e6; padding: 15px 30px;">
+            <div class="modal-footer" id="profileFooter"
+                 style="border-top: 1px solid #dee2e6; padding: 15px 30px;">
                 <!-- Button akan dimuat di sini -->
             </div>
 
@@ -313,6 +332,12 @@ function loadProfileDropdownData() {
     });
 }
 
+/* [PERUBAHAN-4]
+   openProfileModal sekarang:
+   - nutup dropdown
+   - buka UI modal custom (kelas hidden/flex)
+   - lalu load data (toggleProfileData)
+*/
 function openProfileModal() {
     closeProfileDropdown();
     toggleProfileData();
@@ -332,9 +357,30 @@ document.addEventListener('click', function(event) {
 let isEditMode = false;
 let currentUserData = null;
 
+/* [PERUBAHAN-5]
+   Fungsi kecil untuk buka/tutup modal dengan class hidden/flex,
+   supaya tidak lagi tergantung Bootstrap .modal()
+*/
+function openProfileModalUI() {
+    const modal = document.getElementById('profileModal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.classList.add('overflow-hidden');
+}
+
+function closeProfileModal() {
+    const modal = document.getElementById('profileModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.classList.remove('overflow-hidden');
+}
+
 // Fungsi untuk membuka modal dan load data
 function toggleProfileData() {
-    $('#profileModal').modal('show');
+    // [PERUBAHAN-6] ganti $('#profileModal').modal('show') → openProfileModalUI()
+    openProfileModalUI();
     isEditMode = false;
     
     // Reset content
@@ -473,7 +519,7 @@ function displayProfileView(user) {
     
     // Tambahkan tombol edit
     $('#profileFooter').html(`
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-secondary" onclick="closeProfileModal()">Tutup</button>
         <button type="button" class="btn btn-gradient" onclick="switchToEditMode()">
             <i class="fas fa-edit"></i> Edit Profil
         </button>
@@ -706,7 +752,7 @@ function showError(message) {
     `);
     
     $('#profileFooter').html(`
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-secondary" onclick="closeProfileModal()">Tutup</button>
     `);
 }
 

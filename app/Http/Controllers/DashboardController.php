@@ -19,7 +19,7 @@ class DashboardController extends Controller
         $monthlyTrend  = $this->buildMonthlyTrend($year);
         $youtubeVideos = $this->getYoutubeVideos();
         $newsData      = $this->getNewsList($q, 10); // tabel berita (dengan search kalau ada $q)
-        $totalAll  = $this->countAllNews();
+        $totalAll      = $this->countAllNews();
 
         return view('dashboard', [
             'stats'         => $stats,
@@ -31,9 +31,6 @@ class DashboardController extends Controller
             'source'        => $src,
         ]);
     }
-
-
-
 
     // ===== AJAX data (tanpa reload halaman) =====
     public function data(Request $request)
@@ -78,9 +75,6 @@ class DashboardController extends Controller
         ]);
     }
 
-
-
-
     // ================== Helpers ==================
 
     /** Tahun gabungan (news & youtube), desc */
@@ -109,7 +103,6 @@ class DashboardController extends Controller
             ->selectRaw('DISTINCT YEAR(published_at) AS y')
             ->pluck('y')->filter()->sortDesc()->values()->all();
     }
-
 
     /** Kartu ringkasan + distribusi pie (news & youtube) */
     private function buildStats(): array
@@ -147,9 +140,10 @@ class DashboardController extends Controller
 
         // --- News summary (pakai COUNTS) ---
         $newsDistRaw = DB::table('v_news_distribution_all')
-            ->select('label', DB::raw('SUM(n) AS n'))
-            ->groupBy('label')
-            ->pluck('n', 'label');
+         ->select('label', DB::raw('SUM(n) AS n'))
+         ->groupBy('label')
+         ->pluck('n', 'label');
+
 
         $newsPos = (int) ($newsDistRaw['positive'] ?? 0);
         $newsNeu = (int) ($newsDistRaw['neutral']  ?? 0);
@@ -196,10 +190,10 @@ class DashboardController extends Controller
             ->leftJoin('v_news_quotes_with_pubdate as q', 'q.article_fk', '=', 'a.id')
             ->whereYear(DB::raw('COALESCE(a.published_at, a.created_at)'), $year)
             ->selectRaw("
-            DATE_FORMAT(COALESCE(a.published_at, a.created_at), '%Y-%m') AS ym,
-            COALESCE(q.label, 'neutral') AS label,
-            COUNT(*) AS n
-        ")
+                DATE_FORMAT(COALESCE(a.published_at, a.created_at), '%Y-%m') AS ym,
+                COALESCE(q.label, 'neutral') AS label,
+                COUNT(*) AS n
+            ")
             ->groupBy('ym', 'label')
             ->get();
 
@@ -251,8 +245,6 @@ class DashboardController extends Controller
         ];
     }
 
-
-
     /** 5 video + 5 komentar per video (ringkas untuk tabel YouTube) */
     private function getYoutubeVideos(): array
     {
@@ -288,46 +280,147 @@ class DashboardController extends Controller
         return $out;
     }
 
-    private function countAllNews(): int
+    /**
+     * NEW: Data tambahan untuk "Berita Terbaru" dari:
+     * - news_quotes
+     * - youtube_comments
+     *
+     * Diseragamkan fieldnya:
+     *  id, url, title, summary_clean, published_at, created_at
+     */
+    private function getExtraNewsItems(string $q, int $limit = 50) // NEW
     {
-        return (int) DB::table('news_articles')->count();
-    }
-
-
-    private function getNewsList(string $q, int $limit = 50)
-    {
-        if ($q === '') {
-            return DB::table('news_articles')
-                ->select('id', 'url', 'title', 'summary_clean', 'published_at', 'created_at')
-                ->orderByRaw('COALESCE(published_at, created_at) DESC')
-                ->limit($limit)->get();
-        }
-
         $coll = 'utf8mb4_unicode_ci';
         $like = "%{$q}%";
 
-        if (mb_strlen($q) < 3) {
-            return DB::table('news_articles')
-                ->select('id', 'url', 'title', 'summary_clean', 'published_at', 'created_at')
-                ->where(function ($w) use ($like, $coll) {
-                    $w->whereRaw("title COLLATE {$coll} LIKE ?", [$like])
-                        ->orWhereRaw("summary_clean COLLATE {$coll} LIKE ?", [$like]);
-                })
-                ->orderByRaw('COALESCE(published_at, created_at) DESC')
-                ->limit($limit)->get();
+        // 1) Data dari news_quotes
+        // mapping:
+        //   news_url     -> url
+        //   cleaned_text -> title
+        //   context      -> summary_clean
+        //   COALESCE(published_at, created_at) -> published_at
+        $quotesQuery = DB::table('news_quotes')
+            ->selectRaw("
+                id,
+                news_url AS url,
+                cleaned_text AS title,
+                context AS summary_clean,
+                COALESCE(published_at, created_at) AS published_at,
+                created_at
+            ");
+
+        if ($q !== '') {
+            $quotesQuery->whereRaw(
+                "(cleaned_text COLLATE {$coll} LIKE ? OR context COLLATE {$coll} LIKE ?)",
+                [$like, $like]
+            );
         }
 
-        return DB::table('news_articles')
+        $quotes = $quotesQuery
+            ->orderByDesc('published_at')
+            ->limit($limit)
+            ->get();
+
+        // 2) Data dari youtube_comments
+        $ytQuery = DB::table('youtube_comments')
             ->selectRaw("
-                id, url, title, summary_clean, published_at, created_at,
-                (MATCH(title) AGAINST(? IN NATURAL LANGUAGE MODE) * 2 +
-                 MATCH(summary_clean) AGAINST(? IN NATURAL LANGUAGE MODE)) AS score,
-                (title COLLATE {$coll} LIKE ?) AS title_exact
-            ", [$q, $q, $like])
-            ->whereRaw("MATCH(title, summary_clean) AGAINST(? IN NATURAL LANGUAGE MODE)", [$q])
-            ->orderByDesc('title_exact')
-            ->orderByDesc('score')
-            ->orderByRaw('COALESCE(published_at, created_at) DESC')
-            ->limit($limit)->get();
+                id,
+                NULL AS url,
+                comment_text AS title,
+                NULL AS summary_clean,
+                published_at,
+                created_at
+            ");
+
+        if ($q !== '') {
+            $ytQuery->whereRaw("comment_text COLLATE {$coll} LIKE ?", [$like]);
+        }
+
+        $yt = $ytQuery
+            ->orderByDesc('published_at')
+            ->limit($limit)
+            ->get();
+
+        // Gabungkan dua sumber
+        return $quotes
+            ->concat($yt)
+            ->sortByDesc(function ($row) {
+                return $row->published_at ?? $row->created_at;
+            })
+            ->values()
+            ->take($limit);
+    }
+
+    private function countAllNews(): int
+    {
+        // KODE ASLI (masih dipakai)
+        $countArticles = DB::table('news_articles')->count();
+
+        // Tambahan sumber lain (news_quotes & youtube_comments) // NEW
+        $countQuotes   = DB::table('news_quotes')->count();      // NEW
+        $countYt       = DB::table('youtube_comments')->count(); // NEW
+
+        // Dulu: return (int) DB::table('news_articles')->count();
+        return (int) ($countArticles + $countQuotes + $countYt); // CHANGED
+    }
+
+    private function getNewsList(string $q, int $limit = 50)
+    {
+        // ==========================
+        // 1) TANPA KEYWORD
+        // ==========================
+        if ($q === '') {
+            // KODE LAMA, tapi sekarang disimpan ke $articles (bukan return langsung) // CHANGED
+            $articles = DB::table('news_articles')
+                ->select('id', 'url', 'title', 'summary_clean', 'published_at', 'created_at')
+                ->orderByRaw('COALESCE(published_at, created_at) DESC')
+                ->limit($limit)->get();
+        } else {
+            // ==========================
+            // 2) DENGAN KEYWORD
+            // ==========================
+            $coll = 'utf8mb4_unicode_ci';
+            $like = "%{$q}%";
+
+            // keyword pendek (<3)
+            if (mb_strlen($q) < 3) {
+                // KODE LAMA → simpan ke $articles // CHANGED
+                $articles = DB::table('news_articles')
+                    ->select('id', 'url', 'title', 'summary_clean', 'published_at', 'created_at')
+                    ->where(function ($w) use ($like, $coll) {
+                        $w->whereRaw("title COLLATE {$coll} LIKE ?", [$like])
+                            ->orWhereRaw("summary_clean COLLATE {$coll} LIKE ?", [$like]);
+                    })
+                    ->orderByRaw('COALESCE(published_at, created_at) DESC')
+                    ->limit($limit)->get();
+            } else {
+                // keyword panjang (>=3), pakai MATCH AGAINST (KODE LAMA) // CHANGED
+                $articles = DB::table('news_articles')
+                    ->selectRaw("
+                        id, url, title, summary_clean, published_at, created_at,
+                        (MATCH(title) AGAINST(? IN NATURAL LANGUAGE MODE) * 2 +
+                         MATCH(summary_clean) AGAINST(? IN NATURAL LANGUAGE MODE)) AS score,
+                        (title COLLATE {$coll} LIKE ?) AS title_exact
+                    ", [$q, $q, $like])
+                    ->whereRaw("MATCH(title, summary_clean) AGAINST(? IN NATURAL LANGUAGE MODE)", [$q])
+                    ->orderByDesc('title_exact')
+                    ->orderByDesc('score')
+                    ->orderByRaw('COALESCE(published_at, created_at) DESC')
+                    ->limit($limit)->get();
+            }
+        }
+
+        // ==========================
+        // 3) GABUNG DENGAN SUMBER LAIN
+        // ==========================
+        $extra = $this->getExtraNewsItems($q, $limit); // NEW
+
+        return $articles
+            ->concat($extra)                             // NEW
+            ->sortByDesc(function ($row) {               // NEW
+                return $row->published_at ?? $row->created_at;
+            })
+            ->values()                                   // NEW
+            ->take($limit);                              // NEW
     }
 }

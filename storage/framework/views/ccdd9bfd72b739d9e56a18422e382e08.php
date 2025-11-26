@@ -91,4 +91,4 @@
 
 
 </div>
-<?php endif; ?><?php /**PATH C:\xampp\htdocs\project_magang\resources\views/reports/_table.blade.php ENDPATH**/ ?>
+<?php endif; ?><?php /**PATH C:\laragon\www\project_magang\resources\views/reports/_table.blade.php ENDPATH**/ ?>
